@@ -1,4 +1,4 @@
 username: sisaman
 project:
-  train: GAP-TRAIN
-  attack: GAP-ATTACK
+  train: ProGAP-Train
+  attack: ProGAP-Attack
