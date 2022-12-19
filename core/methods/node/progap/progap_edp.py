@@ -6,12 +6,12 @@ from torch_geometric.data import Data
 from torch_sparse import SparseTensor, matmul
 from core import console
 from core.args.utils import ArgInfo
-from core.methods.node.prog.prog_inf import Progressive
+from core.methods.node.progap.progap_inf import ProGAP
 from core.privacy.algorithms import PMA
 from core.modules.base import Metrics
 
 
-class EdgePrivProgressive (Progressive):
+class EdgePrivProgGAP (ProGAP):
     """edge-private progressive method"""
 
     def __init__(self,
@@ -19,7 +19,7 @@ class EdgePrivProgressive (Progressive):
                  epsilon:       Annotated[float, ArgInfo(help='DP epsilon parameter', option='-e')],
                  delta:         Annotated[Union[Literal['auto'], float], 
                                                  ArgInfo(help='DP delta parameter (if "auto", sets a proper value based on data size)', option='-d')] = 'auto',
-                 **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[Progressive])]
+                 **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[ProGAP])]
                  ):
 
         super().__init__(num_classes, **kwargs)
