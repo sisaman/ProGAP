@@ -15,7 +15,6 @@ from core import globals
 
 # TODO
 # - add support for lstm jk
-# - replace ProgModule with MultiMLP
 
 
 class ProGAP (NodeClassification):
@@ -54,13 +53,6 @@ class ProGAP (NodeClassification):
             module.reset_parameters()
         self.trainer.reset()
         self.data = None
-
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
-        """Fit the model to the given data."""
-        self.data = data.to(self.device, non_blocking=True)
-        train_metrics = self._train(self.data, prefix=prefix)
-        test_metrics = self.test(self.data, prefix=prefix)
-        return {**train_metrics, **test_metrics}
 
     def test(self, data: Optional[Data] = None, prefix: str = '') -> Metrics:
         """Predict the labels for the given data, or the training data if data is None."""
