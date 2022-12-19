@@ -33,7 +33,7 @@ class Logger:
         if globals['debug']:
             logger = 'wandb'
             kwargs['enabled'] = True
-            kwargs['project'] += '-DEBUG'
+            kwargs['project'] += '-Test'
             console.debug(f'debug mode: wandb logger is enabled for project {kwargs["project"]}')
         
         LoggerCls = cls.supported_loggers[logger]
