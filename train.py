@@ -6,10 +6,11 @@ with console.status('importing modules'):
     from rich.table import Table
     from time import time
     from typing import Annotated
-    from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+    from argparse import ArgumentParser
     from core import globals
     from core.datasets import DatasetLoader
     from core.args.utils import print_args, create_arguments, strip_kwargs, ArgInfo
+    from core.args.formatter import ArgumentDefaultsRichHelpFormatter
     from core.loggers import Logger
     from core.methods.node import supported_methods, NodeClassification
     from core.utils import seed_everything, confidence_interval
@@ -87,7 +88,7 @@ def main():
         method_parser = method_subparser.add_parser(
             name=method_name, 
             help=method_class.__doc__, 
-            formatter_class=ArgumentDefaultsHelpFormatter
+            formatter_class=ArgumentDefaultsRichHelpFormatter
         )
 
         # dataset args
@@ -103,7 +104,7 @@ def main():
         create_arguments(run, group_expr)
         create_arguments(Logger.setup, group_expr)
 
-    parser = ArgumentParser(parents=[init_parser], formatter_class=ArgumentDefaultsHelpFormatter)
+    parser = ArgumentParser(parents=[init_parser], formatter_class=ArgumentDefaultsRichHelpFormatter)
     kwargs = vars(parser.parse_args())
     print_args(kwargs, num_cols=2)
 
