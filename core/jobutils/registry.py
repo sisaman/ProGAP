@@ -3,6 +3,7 @@ import wandb
 import pandas as pd
 import numpy as np
 from itertools import product
+from core import console
 
 
 class WandBJobRegistry:
@@ -33,7 +34,7 @@ class WandBJobRegistry:
             if 'epsilon' in self.df_jobs.columns:
                 self.df_jobs['epsilon'] = self.df_jobs['epsilon'].astype(float)
     
-    def register(self, main_file, *args, **params) -> list[str]:
+    def register(self, main_file, method, attack=None, **params) -> list[str]:
         """Register jobs to the registry.
         This method will generate all possible combinations of the parameters and
         create a list of jobs to run. The job commands are stored in the registry
@@ -55,12 +56,22 @@ class WandBJobRegistry:
         configs = self._product_dict(params)
 
         for config in configs:
-            if not self._exists(config):
+            extended_config = {**config, 'method': method}
+            if attack is not None:
+                extended_config['attack'] = attack
+
+            if not self._exists(extended_config):
                 self.df_jobs = pd.concat([self.df_jobs, pd.DataFrame(config, index=[0])], ignore_index=True)
                 options = ' '.join([f' --{param} {value} ' for param, value in config.items()])
-                command = f'python {main_file} {" ".join(args)} {options} --logger wandb --project {self.project}'
+                args = f" {method}"
+                if attack is not None:
+                    args += f" {attack} "
+                command = f'python {main_file} {args} {options} --logger wandb --project {self.project}'
                 command = ' '.join(command.split())
                 jobs.append(command)
+
+                if len(self.df_jobs) % 100 == 0:
+                    console.print(len(self.df_jobs))
 
         self.job_list += jobs
         return jobs
