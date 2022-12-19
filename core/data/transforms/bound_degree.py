@@ -3,7 +3,8 @@ import torch.utils.cpp_extension
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.data import Data
 from torch_sparse import SparseTensor
-from torch_geometric.loader.utils import to_csc, filter_data
+from torch_geometric.loader.utils import filter_data
+from torch_geometric.sampler.utils import to_csc
 
 
 class BoundOutDegree(BaseTransform):
