@@ -8,14 +8,14 @@ from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
 from core.data.loader import NodeDataLoader
-from core.methods.node.prog.prog_inf import Progressive
+from core.methods.node.progap.progap_inf import ProGAP
 from core.privacy.mechanisms import ComposedNoisyMechanism
 from core.privacy.algorithms import PMA, NoisySGD
 from core.data.transforms import BoundOutDegree
 from core.modules.base import Metrics, Stage, TrainableModule
 
 
-class NodePrivProgressive (Progressive):
+class NodePrivProGAP (ProGAP):
     """node-private GAP method"""
 
     def __init__(self,
@@ -26,7 +26,7 @@ class NodePrivProgressive (Progressive):
                  max_degree:    Annotated[int,   ArgInfo(help='max degree to sample per each node')] = 100,
                  max_grad_norm: Annotated[float, ArgInfo(help='maximum norm of the per-sample gradients')] = 1.0,
                  batch_size:    Annotated[int,   ArgInfo(help='batch size')] = 256,
-                 **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[Progressive], exclude=['batch_norm'])]
+                 **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[ProGAP], exclude=['batch_norm'])]
                  ):
 
         super().__init__(num_classes, 

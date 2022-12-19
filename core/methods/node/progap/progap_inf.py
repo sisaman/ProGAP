@@ -18,7 +18,7 @@ from core import globals
 # - replace ProgModule with MultiMLP
 
 
-class Progressive (NodeClassification):
+class ProGAP (NodeClassification):
     """Non-private Progressive method"""
 
     def __init__(self,

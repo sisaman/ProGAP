@@ -2,9 +2,9 @@ from core.methods.node.base import NodeClassification
 from core.methods.node.gap.gap_inf import GAP
 from core.methods.node.gap.gap_edp import EdgePrivGAP
 from core.methods.node.gap.gap_ndp import NodePrivGAP
-from core.methods.node.prog.prog_edp import EdgePrivProgressive
-from core.methods.node.prog.prog_inf import Progressive
-from core.methods.node.prog.prog_ndp import NodePrivProgressive
+from core.methods.node.progap.progap_inf import ProGAP
+from core.methods.node.progap.progap_edp import EdgePrivProgGAP
+from core.methods.node.progap.progap_ndp import NodePrivProGAP
 from core.methods.node.sage.sage_inf import SAGE
 from core.methods.node.sage.sage_edp import EdgePrivSAGE
 from core.methods.node.sage.sage_ndp import NodePrivSAGE
@@ -21,7 +21,7 @@ supported_methods = {
     'sage-ndp': NodePrivSAGE,
     'mlp':      MLP,
     'mlp-dp':   PrivMLP,
-    'prog-inf': Progressive,
-    'prog-edp': EdgePrivProgressive,
-    'prog-ndp': NodePrivProgressive,
+    'progap-inf': ProGAP,
+    'progap-edp': EdgePrivProgGAP,
+    'progap-ndp': NodePrivProGAP,
 }
