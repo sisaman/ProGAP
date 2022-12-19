@@ -1,7 +1,6 @@
 from typing import Iterable
 from rich.console import Group
 from rich.padding import Padding
-from rich.text import Text
 from rich.table import Column, Table
 from core.modules.base import Metrics
 from core import console
@@ -97,7 +96,7 @@ class TrainerProgress(Progress):
             self.max_rows = max(self.max_rows, table.row_count)
             pad_top = 0 if epoch_task.finished else self.max_rows - table.row_count
             group = Group(table, Padding(highlighter(metrics), pad=(pad_top,0,0,2)))
-            return Padding(group, pad=(0,0,1,21))
+            return Padding(group, pad=(0,0,1,18))
 
         else:
             return table
