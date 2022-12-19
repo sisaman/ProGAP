@@ -12,7 +12,7 @@ from core.modules.base import Metrics, Stage, TrainableModule
 # - add support for lstm jk
 
 
-class ProgModule(TrainableModule):
+class ProgressiveModule(TrainableModule):
     def __init__(self, *,
                  num_classes: int,
                  hidden_dim: int = 16,  
@@ -30,7 +30,7 @@ class ProgModule(TrainableModule):
         self.normalize = normalize
         self.jk = JumpingKnowledge(mode=jk) if jk else None
 
-        self.encoder_mlp = MLP(
+        self.encoder = MLP(
             hidden_dim=hidden_dim,
             output_dim=hidden_dim,
             num_layers=encoder_layers,
@@ -40,7 +40,7 @@ class ProgModule(TrainableModule):
             plain_last=False,
         )
 
-        self.head_mlp = MLP(
+        self.head = MLP(
             hidden_dim=hidden_dim,
             output_dim=num_classes,
             num_layers=head_layers,
@@ -60,7 +60,7 @@ class ProgModule(TrainableModule):
         Returns:
             tuple[Tensor, Tensor]: node embeddings, node unnormalized predictions
         """
-        h = x = self.encoder_mlp(x)
+        h = x = self.encoder(x)
         
         if self.jk:
             xs = h_stack.unbind(dim=-1)
@@ -69,7 +69,7 @@ class ProgModule(TrainableModule):
         if self.normalize:
             x = F.normalize(x, p=2, dim=-1)
             
-        y = self.head_mlp(x)
+        y = self.head(x)
         return h, y
 
     def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
@@ -94,5 +94,5 @@ class ProgModule(TrainableModule):
         return x, torch.softmax(y, dim=-1)
         
     def reset_parameters(self):
-        self.encoder_mlp.reset_parameters()
-        self.head_mlp.reset_parameters()
+        self.encoder.reset_parameters()
+        self.head.reset_parameters()

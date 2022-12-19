@@ -9,7 +9,7 @@ from core import console
 from core.args.utils import ArgInfo
 from core.methods.node.base import NodeClassification
 from core.modules.base import Metrics, TrainableModule
-from core.modules.node.prog import ProgModule
+from core.modules.node.prog import ProgressiveModule
 from core import globals
 
 
@@ -36,7 +36,7 @@ class ProGAP (NodeClassification):
         super().__init__(num_classes, **kwargs)
 
         self.modules = [
-            ProgModule(
+            ProgressiveModule(
                 num_classes=num_classes,
                 hidden_dim=hidden_dim,
                 encoder_layers=encoder_layers,
@@ -46,7 +46,8 @@ class ProGAP (NodeClassification):
                 activation_fn=activation_resolver.make(activation),
                 dropout=dropout,
                 batch_norm=batch_norm,
-            ) for i in range(stages)]
+            ) for i in range(stages)
+        ]
 
     def reset_parameters(self):
         for module in self.modules:
@@ -107,7 +108,7 @@ class ProGAP (NodeClassification):
                 data.x = self._aggregate(x, data.adj_t)
             
             if i > 1:
-                self.modules[i].encoder_mlp.load_state_dict(self.modules[i - 1].encoder_mlp.state_dict())
+                self.modules[i].encoder.load_state_dict(self.modules[i - 1].encoder.state_dict())
 
             console.log(f'Fitting stage {i+1} of {n}')
             self.trainer.reset()
