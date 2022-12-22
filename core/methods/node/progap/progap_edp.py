@@ -51,5 +51,4 @@ class EdgePrivProgGAP (ProGAP):
         x = F.normalize(x, p=2, dim=-1)             # normalize
         x = matmul(adj_t, x)                        # aggregate
         x = self.pma_mechanism(x, sensitivity=1)    # perturb
-        x = F.normalize(x, p=2, dim=-1)             # normalize
         return x

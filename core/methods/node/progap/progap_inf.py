@@ -129,7 +129,6 @@ class ProGAP (NodeClassification):
     def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
         x = F.normalize(x, p=2, dim=-1)             # normalize
         x = matmul(adj_t, x)                        # aggregate
-        x = F.normalize(x, p=2, dim=-1)             # normalize
         return x
 
     def configure_optimizer(self, module: TrainableModule) -> Optimizer:

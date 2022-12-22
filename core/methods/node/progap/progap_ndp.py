@@ -90,7 +90,6 @@ class NodePrivProGAP (ProGAP):
         x = F.normalize(x, p=2, dim=-1)                         # normalize
         x = matmul(adj_t, x)                                    # aggregate
         x = self.pma_mechanism(x, sensitivity=sensitivity)      # perturb
-        x = F.normalize(x, p=2, dim=-1)                         # normalize
         return x
 
     def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
