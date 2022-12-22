@@ -13,10 +13,6 @@ from core.modules.node.prog import ProgressiveModule
 from core import globals
 
 
-# TODO
-# - add support for lstm jk
-
-
 class ProGAP (NodeClassification):
     """Non-private Progressive method"""
 
@@ -26,7 +22,7 @@ class ProGAP (NodeClassification):
                  hidden_dim:      Annotated[int,   ArgInfo(help='dimension of the hidden layers')] = 16,
                  encoder_layers:  Annotated[int,   ArgInfo(help='number of encoder MLP layers')] = 1,
                  head_layers:     Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
-                 jk:              Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=['cat', 'max'])] = None,
+                 jk:              Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=['cat', 'max', 'lstm'])] = None,
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
@@ -46,7 +42,6 @@ class ProGAP (NodeClassification):
                 activation_fn=activation_resolver.make(activation),
                 dropout=dropout,
                 batch_norm=batch_norm,
-                n_extra_channels=i,
             ) for i in range(stages)
         ]
 

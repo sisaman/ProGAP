@@ -8,10 +8,6 @@ from torch_geometric.nn import JumpingKnowledge
 from core.modules.base import Metrics, Stage, TrainableModule
 
 
-# TODO
-# - add support for lstm jk
-
-
 class ProgressiveModule(TrainableModule):
     def __init__(self, *,
                  num_classes: int,
@@ -28,7 +24,7 @@ class ProgressiveModule(TrainableModule):
         super().__init__()
 
         self.normalize = normalize
-        self.jk = JumpingKnowledge(mode=jk) if jk else None
+        self.jk = JumpingKnowledge(mode=jk, channels=hidden_dim, num_layers=2) if jk else None
 
         self.encoder = MLP(
             hidden_dim=hidden_dim,
@@ -61,7 +57,7 @@ class ProgressiveModule(TrainableModule):
             tuple[Tensor, Tensor]: node embeddings, node unnormalized predictions
         """
         h = x = self.encoder(x)
-        
+
         if self.jk:
             xs = h_stack.unbind(dim=-1)
             x = self.jk(xs + (x,))
@@ -76,6 +72,7 @@ class ProgressiveModule(TrainableModule):
         mask = data[f'{stage}_mask']
         x, y = data.x[mask], data.y[mask]
         h = data.h[mask] if self.jk else None
+        
         preds = F.log_softmax(self(x, h)[1], dim=-1)
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
         metrics = {'acc': acc}
