@@ -46,6 +46,7 @@ class ProGAP (NodeClassification):
                 activation_fn=activation_resolver.make(activation),
                 dropout=dropout,
                 batch_norm=batch_norm,
+                n_extra_channels=i,
             ) for i in range(stages)
         ]
 

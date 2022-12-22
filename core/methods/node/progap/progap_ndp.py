@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from typing import Annotated, Literal, Union
 import torch.nn.functional as F
+from torch.nn import BatchNorm1d, GroupNorm
 from torch_geometric.data import Data
 from torch_sparse import SparseTensor, matmul
 from opacus.optimizers import DPOptimizer
@@ -13,6 +14,13 @@ from core.privacy.mechanisms import ComposedNoisyMechanism
 from core.privacy.algorithms import PMA, NoisySGD
 from core.data.transforms import BoundOutDegree
 from core.modules.base import Metrics, Stage, TrainableModule
+from opacus.validators import ModuleValidator
+from opacus.validators.utils import register_module_fixer
+
+
+@register_module_fixer([BatchNorm1d])
+def fix(module: BatchNorm1d) -> GroupNorm:
+    return GroupNorm(1, module.num_features, affine=module.affine)
 
 
 class NodePrivProGAP (ProGAP):
@@ -30,10 +38,15 @@ class NodePrivProGAP (ProGAP):
                  ):
 
         super().__init__(num_classes, 
-            batch_norm=False, 
+            batch_norm=True,            # will be replaced with GroupNorm by ModuleValidator
             batch_size=batch_size, 
             **kwargs
         )
+
+        self.modules = [ModuleValidator.fix(module) for module in self.modules]
+        for module in self.modules:
+            ModuleValidator.validate(module, strict=True)
+
         self.epsilon = epsilon
         self.delta = delta
         self.max_degree = max_degree
