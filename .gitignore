@@ -129,3 +129,4 @@ build.ninja
 TODO
 /__test*
 /figs
+/notebooks
