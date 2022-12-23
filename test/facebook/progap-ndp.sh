@@ -1,1 +1,1 @@
-python train.py progap-ndp --dataset facebook --epsilon 8 --encoder_layers 2 --head_layers 1 --jk cat --stages 6 --max_degree 100 --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.01 --repeats 1 --max_grad_norm 1 --epochs 5 --batch_size 256 $@
+python train.py progap-ndp --dataset facebook --epsilon 8 --encoder_layers 2 --head_layers 1 --jk cat --stages 4 --max_degree 100 --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.01 --repeats 1 --max_grad_norm 1 --epochs 5 --batch_size 256 $@
