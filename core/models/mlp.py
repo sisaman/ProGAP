@@ -43,9 +43,9 @@ class MLP(Module):
         for i, layer in enumerate(self.layers):
             x = layer(x)
             if i < self.num_layers - self.plain_last:
+                x = self.activation_fn(x)
                 x = self.bns[i](x) if self.bns else x
                 x = self.dropout_fn(x)
-                x = self.activation_fn(x)
         return x
 
     def reset_parameters(self):
