@@ -62,7 +62,7 @@ class ProgressiveModule(TrainableModule):
         x = self.encoder(x)
         h = x
 
-        if self.jk:
+        if hasattr(self, 'jk'):
             xs = h_stack.unbind(dim=-1)
             x = self.jk(xs + (x,))
 
@@ -75,7 +75,7 @@ class ProgressiveModule(TrainableModule):
     def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
         mask = data[f'{stage}_mask']
         x, y = data.x[mask], data.y[mask]
-        h = data.h[mask] if self.jk else None
+        h = data.h[mask] if hasattr(data, 'h') else None
         
         preds = F.log_softmax(self(x, h)[1], dim=-1)
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
@@ -91,7 +91,7 @@ class ProgressiveModule(TrainableModule):
     @torch.no_grad()
     def predict(self, data: Data) -> Tensor:
         self.eval()
-        x, y = self(data.x, data.h if self.jk else None)
+        x, y = self(data.x, getattr(data, 'h', None))
         return x, torch.softmax(y, dim=-1)
 
     def load(self, other: Self, encoder: bool = True, head: bool = True, jk: bool = True):
