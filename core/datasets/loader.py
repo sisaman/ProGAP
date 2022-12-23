@@ -4,7 +4,7 @@ from typing import Annotated
 import torch
 from core import console
 from torch_geometric.data import Data
-from torch_geometric.datasets import Reddit, Amazon as AmazonDataset, FacebookPagePage
+from torch_geometric.datasets import Reddit, Amazon as AmazonDataset, FacebookPagePage, Flickr
 from torch_geometric.transforms import Compose, ToSparseTensor, RandomNodeSplit
 from core.args.utils import ArgInfo
 from core.data.transforms import FilterClassByCount
@@ -47,7 +47,13 @@ class DatasetLoader:
                 # FilterClassByCount(min_count=10000, remove_unlabeled=True)
             ])
         ),
-        'fbpage': partial(FacebookPagePage,
+        'facebook-pages': partial(FacebookPagePage,
+            transform=Compose([
+                RandomNodeSplit(num_val=0.1, num_test=0.15), 
+                # FilterClassByCount(min_count=10000, remove_unlabeled=True)
+            ])
+        ),
+        'flickr': partial(Flickr,
             transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
                 # FilterClassByCount(min_count=10000, remove_unlabeled=True)
