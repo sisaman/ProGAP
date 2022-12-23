@@ -33,19 +33,13 @@ class GAP (NodeClassification):
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=supported_activations)] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
-                 encoder_epochs:  Annotated[int,   ArgInfo(help='number of epochs for encoder pre-training (ignored if encoder_layers=0)')] = 100,
                  **kwargs:        Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
                  ):
 
         super().__init__(num_classes, **kwargs)
 
-        if encoder_layers == 0 and encoder_epochs > 0:
-            console.warning('encoder_layers is 0, setting encoder_epochs to 0')
-            encoder_epochs = 0
-
         self.hops = hops
         self.encoder_layers = encoder_layers
-        self.encoder_epochs = encoder_epochs
         activation_fn = self.supported_activations[activation]
 
         self._encoder = EncoderModule(
@@ -123,7 +117,7 @@ class GAP (NodeClassification):
         
         self.trainer.fit(
             model=self._encoder,
-            epochs=self.encoder_epochs,
+            epochs=self.epochs,
             optimizer=self.configure_encoder_optimizer(), 
             train_dataloader=self.data_loader(data, 'train'), 
             val_dataloader=self.data_loader(data, 'val'),
