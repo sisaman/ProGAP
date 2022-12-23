@@ -10,53 +10,68 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
     datasets = ['facebook', 'reddit', 'amazon']
     batch_size = {'facebook': 256, 'reddit': 2048, 'amazon': 4096}
 
-    gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
-    sage_methods = ['sage-inf', 'sage-edp', 'sage-ndp']
-    mlp_methods  = ['mlp', 'mlp-dp']
-    inf_methods  = ['gap-inf', 'sage-inf']
-    edp_methods  = ['gap-edp', 'sage-edp', 'mlp']
-    ndp_methods  = ['gap-ndp', 'sage-ndp', 'mlp-dp']
+    progap_methods  = ['progap-inf', 'progap-edp', 'progap-ndp']
+    # gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
+    # sage_methods = ['sage-inf', 'sage-edp', 'sage-ndp']
+    # mlp_methods  = ['mlp', 'mlp-dp']
+
+    inf_methods  = ['progap-inf'
+                    # , 'gap-inf', 'sage-inf', 'mlp'
+                    ]
+    edp_methods  = ['progap-edp', 
+                    # 'gap-edp', 'sage-edp', 'mlp'
+                    ]
+    ndp_methods  = ['progap-ndp', 
+                    # 'gap-ndp', 'sage-ndp', 'mlp-dp'
+                    ]
+
     all_methods  = inf_methods + edp_methods + ndp_methods
     hparams = {dataset: {method: {} for method in all_methods} for dataset in datasets}
 
     for dataset in datasets:
-        # For GAP methods
-        for method in gap_methods:
+        # For ProGAP methods
+        for method in progap_methods:
             hparams[dataset][method]['encoder_layers'] = 2
-            hparams[dataset][method]['base_layers'] = 1
             hparams[dataset][method]['head_layers'] = 1
-            hparams[dataset][method]['combine'] = 'cat'
-            hparams[dataset][method]['hops'] = [1, 2, 3, 4, 5]
-        # For SAGE methods
-        for method in sage_methods:
-            hparams[dataset][method]['base_layers'] = 2
-            hparams[dataset][method]['head_layers'] = 1
-            if method != 'sage-ndp':
-                hparams[dataset][method]['mp_layers'] = [1, 2, 3, 4, 5]
-        # For MLP methods
-        for method in mlp_methods:
-            hparams[dataset][method]['num_layers'] = 3
-        # For GAP-NDP and SAGE-NDP
-        for method in ['gap-ndp', 'sage-ndp']:
+            hparams[dataset][method]['jk'] = 'cat'
+            hparams[dataset][method]['stages'] = [2, 3, 4, 5, 6]
+        # # For GAP methods
+        # for method in gap_methods:
+        #     hparams[dataset][method]['encoder_layers'] = 2
+        #     hparams[dataset][method]['base_layers'] = 1
+        #     hparams[dataset][method]['head_layers'] = 1
+        #     hparams[dataset][method]['combine'] = 'cat'
+        #     hparams[dataset][method]['hops'] = [1, 2, 3, 4, 5]
+        # # For SAGE methods
+        # for method in sage_methods:
+        #     hparams[dataset][method]['base_layers'] = 2
+        #     hparams[dataset][method]['head_layers'] = 1
+        #     if method != 'sage-ndp':
+        #         hparams[dataset][method]['mp_layers'] = [1, 2, 3, 4, 5]
+        # # For MLP methods
+        # for method in mlp_methods:
+        #     hparams[dataset][method]['num_layers'] = 3
+        # For graph-based NDP methods
+        for method in set(ndp_methods) - {'mlp-dp'}:
             hparams[dataset][method]['max_degree'] = [100, 200, 300, 400]
         # For all methods
         for method in all_methods:
             hparams[dataset][method]['hidden_dim'] = 16
             hparams[dataset][method]['activation'] = 'selu'
             hparams[dataset][method]['optimizer'] = 'adam'
-            hparams[dataset][method]['learning_rate'] = 0.01
+            hparams[dataset][method]['learning_rate'] = [0.01, 0.05]
             hparams[dataset][method]['repeats'] = 10
             if method in ndp_methods:
                 hparams[dataset][method]['max_grad_norm'] = 1
-                hparams[dataset][method]['epochs'] = 10
+                hparams[dataset][method]['epochs'] = [5, 10]
                 hparams[dataset][method]['batch_size'] = batch_size[dataset]
             else:
                 hparams[dataset][method]['batch_norm'] = True
                 hparams[dataset][method]['epochs'] = 100
                 hparams[dataset][method]['batch_size'] = 'full'
-        # For GAP methods
-        for method in gap_methods:
-            hparams[dataset][method]['encoder_epochs'] = hparams[dataset][method]['epochs']
+        # # For GAP methods
+        # for method in gap_methods:
+        #     hparams[dataset][method]['encoder_epochs'] = hparams[dataset][method]['epochs']
 
     # ### Accuracy/Privacy Trade-off
     for dataset in datasets:
@@ -64,8 +79,8 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             params = {}
             if method in ndp_methods:
                 params['epsilon'] = [1, 2, 4, 8, 16]
-            elif method in ['gap-edp', 'sage-edp']:
-                params['epsilon'] = [0.1, 0.2, 0.5, 1, 2, 4, 8]
+            elif method in set(edp_methods) - {'mlp'}:
+                params['epsilon'] = [0.25, 0.5, 1, 2, 4]
                 
             registry.register(
                 'train.py',
@@ -75,52 +90,52 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                 **hparams[dataset][method]
             )
 
-    # ### Effect of Encoder
-    for dataset in datasets:
-        for method in ['gap-edp', 'gap-ndp']:
-            hp = {**hparams[dataset][method]}
-            default_encoder_layers = hp.pop('encoder_layers')
-            epsilon = [0.5, 1, 2, 4, 8] if method == 'gap-edp' else [1, 2, 4, 8, 16]
-            registry.register(
-                'train.py',
-                method,
-                dataset=dataset,
-                encoder_layers=[0, default_encoder_layers],
-                epsilon=epsilon,
-                **hp
-            )
+    # # ### Effect of Encoder
+    # for dataset in datasets:
+    #     for method in ['gap-edp', 'gap-ndp']:
+    #         hp = {**hparams[dataset][method]}
+    #         default_encoder_layers = hp.pop('encoder_layers')
+    #         epsilon = [0.5, 1, 2, 4, 8] if method == 'gap-edp' else [1, 2, 4, 8, 16]
+    #         registry.register(
+    #             'train.py',
+    #             method,
+    #             dataset=dataset,
+    #             encoder_layers=[0, default_encoder_layers],
+    #             epsilon=epsilon,
+    #             **hp
+    #         )
 
-    # ### Effect of Hops
-    for dataset in datasets:
-        for method in ['gap-edp', 'gap-ndp']:
-            hp = {**hparams[dataset][method]}
-            hp.pop('hops')
-            hops = [1,2,3,4,5]
-            epsilon = [1, 2, 4, 8] if method == 'gap-edp' else [2, 4, 8, 16]
-            registry.register(
-                'train.py',
-                method,
-                dataset=dataset,
-                hops=hops,
-                epsilon=epsilon,
-                **hp
-            )
+    # # ### Effect of Stages
+    # for dataset in datasets:
+    #     for method in ['progap-edp', 'progap-ndp']:
+    #         hp = {**hparams[dataset][method]}
+    #         hp.pop('stages')
+    #         stages = [2, 3, 4, 5, 6]
+    #         epsilon = [1, 2, 4, 8] if method == 'progap-edp' else [2, 4, 8, 16]
+    #         registry.register(
+    #             'train.py',
+    #             method,
+    #             dataset=dataset,
+    #             stages=stages,
+    #             epsilon=epsilon,
+    #             **hp
+    #         )
 
-    # ### Effect of Degree
-    for dataset in datasets:
-        method = 'gap-ndp'
-        hp = {**hparams[dataset][method]}
-        hp.pop('max_degree')
-        max_degree = [10,20,50,100,200,300,400]
-        epsilon = [2, 4, 8, 16]
-        registry.register(
-            'train.py',
-            method,
-            dataset=dataset,
-            max_degree=max_degree,
-            epsilon=epsilon,
-            **hp
-        )
+    # # ### Effect of Degree
+    # for dataset in datasets:
+    #     method = 'progap-ndp'
+    #     hp = {**hparams[dataset][method]}
+    #     hp.pop('max_degree')
+    #     max_degree = [10,20,50,100,200,300,400]
+    #     epsilon = [2, 4, 8, 16]
+    #     registry.register(
+    #         'train.py',
+    #         method,
+    #         dataset=dataset,
+    #         max_degree=max_degree,
+    #         epsilon=epsilon,
+    #         **hp
+    #     )
 
     return registry.job_list
     
@@ -217,20 +232,20 @@ def generate(path: str):
         project=wandb_config['project']['train']
     )
 
-    registry_attack = WandBJobRegistry(
-        entity=wandb_config['username'], 
-        project=wandb_config['project']['attack']
-    )
+    # registry_attack = WandBJobRegistry(
+    #     entity=wandb_config['username'], 
+    #     project=wandb_config['project']['attack']
+    # )
 
     with console.status('pulling jobs from WandB'):
         registry_train.pull()
-        registry_attack.pull()
+        # registry_attack.pull()
 
     with console.status('generating job commands'):
         train_commands = create_train_commands(registry_train)
-        attack_commands = create_attack_commands(registry_attack)
+        # attack_commands = create_attack_commands(registry_attack)
 
-    job_list = train_commands + attack_commands
+    job_list = train_commands # + attack_commands
     console.info(f'{len(job_list)} jobs generated')
     with console.status(f'saving jobs to {path}'):
         registry_train.job_list = job_list
