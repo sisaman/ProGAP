@@ -51,12 +51,11 @@ class NodePrivProGAP (ProGAP):
         self.delta = delta
         self.max_degree = max_degree
         self.max_grad_norm = max_grad_norm
-        self.hops = len(self.modules) - 1
-
         self.num_train_nodes = None  # will be used to set delta if it is 'auto'
 
     def calibrate(self):
-        self.pma_mechanism = PMA(noise_scale=0.0, hops=self.hops)
+        n = len(self.modules)
+        self.pma_mechanism = PMA(noise_scale=0.0, hops=1)
 
         self.noisy_sgd = NoisySGD(
             noise_scale=0.0, 
@@ -72,7 +71,7 @@ class NodePrivProGAP (ProGAP):
                 self.pma_mechanism, 
                 self.noisy_sgd
             ],
-            coeff_list=[1, len(self.modules)],
+            coeff_list=[n - 1, n],
         )
 
         with console.status('calibrating noise to privacy budget'):
