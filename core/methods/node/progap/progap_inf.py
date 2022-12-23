@@ -22,7 +22,7 @@ class ProGAP (NodeClassification):
                  hidden_dim:      Annotated[int,   ArgInfo(help='dimension of the hidden layers')] = 16,
                  encoder_layers:  Annotated[int,   ArgInfo(help='number of encoder MLP layers')] = 1,
                  head_layers:     Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
-                 jk:              Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=['cat', 'max', 'lstm'])] = None,
+                 jk:              Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=['cat', 'max', 'lstm', 'attn', 'sum'])] = None,
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
@@ -38,7 +38,7 @@ class ProGAP (NodeClassification):
                 encoder_layers=encoder_layers,
                 head_layers=head_layers,
                 normalize=True,
-                jk=None if i == 0 else jk,
+                jk_mode=None if i == 0 else jk,
                 activation_fn=activation_resolver.make(activation),
                 dropout=dropout,
                 batch_norm=batch_norm,
@@ -102,9 +102,12 @@ class ProGAP (NodeClassification):
                     data.h = torch.cat([data.h, x.unsqueeze(-1)], dim=-1)
                 
                 data.x = self._aggregate(x, data.adj_t)
-            
-            if i > 1:
-                self.modules[i].encoder.load_state_dict(self.modules[i - 1].encoder.state_dict())
+
+            self.modules[i].load(self.modules[i-1],
+                encoder=i > 1,
+                jk=False,
+                head=False,
+            )
 
             console.log(f'Fitting stage {i+1} of {n}')
             self.trainer.reset()

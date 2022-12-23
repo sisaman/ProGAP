@@ -1,4 +1,5 @@
 from typing import Callable, Optional
+from typing_extensions import Self
 import torch
 from torch import Tensor
 import torch.nn.functional as F
@@ -15,7 +16,7 @@ class ProgressiveModule(TrainableModule):
                  encoder_layers: int = 2, 
                  head_layers: int = 1, 
                  normalize: bool = True,
-                 jk: Optional[str] = None,
+                 jk_mode: Optional[str] = None,
                  dropout: float = 0.0, 
                  activation_fn: Callable[[Tensor], Tensor] = torch.relu_, 
                  batch_norm: bool = False,
@@ -24,7 +25,9 @@ class ProgressiveModule(TrainableModule):
         super().__init__()
 
         self.normalize = normalize
-        self.jk = JumpingKnowledge(mode=jk, channels=hidden_dim, num_layers=2) if jk else None
+        self.jk_mode = jk_mode
+        if jk_mode is not None:
+            self.jk = JumpingKnowledge(mode=jk_mode, channels=hidden_dim, num_layers=2)
 
         self.encoder = MLP(
             hidden_dim=hidden_dim,
@@ -56,7 +59,8 @@ class ProgressiveModule(TrainableModule):
         Returns:
             tuple[Tensor, Tensor]: node embeddings, node unnormalized predictions
         """
-        h = x = self.encoder(x)
+        x = self.encoder(x)
+        h = x
 
         if self.jk:
             xs = h_stack.unbind(dim=-1)
@@ -89,7 +93,19 @@ class ProgressiveModule(TrainableModule):
         self.eval()
         x, y = self(data.x, data.h if self.jk else None)
         return x, torch.softmax(y, dim=-1)
+
+    def load(self, other: Self, encoder: bool = True, head: bool = True, jk: bool = True):
+        if encoder:
+            self.encoder.load_state_dict(other.encoder.state_dict())
+
+        if head:
+            self.head.load_state_dict(other.head.state_dict())
+
+        if jk and self.jk_mode not in (None, 'cat'):
+            self.jk.load_state_dict(other.jk.state_dict())
         
     def reset_parameters(self):
         self.encoder.reset_parameters()
         self.head.reset_parameters()
+        if hasattr(self, 'jk'):
+            self.jk.reset_parameters()
