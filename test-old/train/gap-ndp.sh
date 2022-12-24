@@ -14,5 +14,4 @@ python train.py gap-ndp \
 --repeats 10 \
 --max_grad_norm 1 \
 --epochs 10 \
---batch_size 256 \
---encoder_epochs 10 $@
+--batch_size 256 $@

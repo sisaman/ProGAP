@@ -13,5 +13,4 @@ python train.py gap-edp \
 --repeats 10 \
 --batch_norm True \
 --epochs 100 \
---batch_size full \
---encoder_epochs 100 $@
+--batch_size full $@

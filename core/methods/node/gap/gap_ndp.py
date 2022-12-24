@@ -47,7 +47,7 @@ class NodePrivGAP (GAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.encoder_epochs,
+            epochs=self.epochs,
             max_grad_norm=self.max_grad_norm,
         )
 

@@ -15,7 +15,6 @@ python attack.py gap-ndp nmi \
 --shadow_epochs 10 \
 --shadow_batch_size 256 \
 --shadow_val_interval 0 \
---shadow_encoder_epochs 10 \
 --num_nodes_per_class 1000 \
 --attack_hidden_dim 64 \
 --attack_num_layers 3 \

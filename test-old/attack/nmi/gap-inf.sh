@@ -13,7 +13,6 @@ python attack.py gap-inf nmi \
 --shadow_epochs 100 \
 --shadow_batch_size full \
 --shadow_val_interval 0 \
---shadow_encoder_epochs 100 \
 --num_nodes_per_class 1000 \
 --attack_hidden_dim 64 \
 --attack_num_layers 3 \
