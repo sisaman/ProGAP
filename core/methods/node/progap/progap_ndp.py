@@ -10,8 +10,8 @@ from core import console
 from core.args.utils import ArgInfo
 from core.data.loader import NodeDataLoader
 from core.methods.node.progap.progap_inf import ProGAP
-from core.privacy.mechanisms import ComposedNoisyMechanism
-from core.privacy.algorithms import PMA, NoisySGD
+from core.privacy.mechanisms import GaussianMechanism, ComposedNoisyMechanism
+from core.privacy.algorithms import NoisySGD
 from core.data.transforms import BoundOutDegree
 from core.modules.base import Metrics, Stage, TrainableModule
 from opacus.validators import ModuleValidator
@@ -55,7 +55,7 @@ class NodePrivProGAP (ProGAP):
 
     def calibrate(self):
         n = len(self.modules)
-        self.pma_mechanism = PMA(noise_scale=0.0, hops=1)
+        self.gm = GaussianMechanism(noise_scale=0.0)
 
         self.noisy_sgd = NoisySGD(
             noise_scale=0.0, 
@@ -66,9 +66,9 @@ class NodePrivProGAP (ProGAP):
         )
 
         composed_mechanism = ComposedNoisyMechanism(
-            noise_scale=0.0,
+            noise_scale=1.0,
             mechanism_list=[
-                self.pma_mechanism, 
+                self.gm, 
                 self.noisy_sgd
             ],
             coeff_list=[n - 1, n],
@@ -101,7 +101,7 @@ class NodePrivProGAP (ProGAP):
         sensitivity = np.sqrt(self.max_degree)
         x = F.normalize(x, p=2, dim=-1)                         # normalize
         x = matmul(adj_t, x)                                    # aggregate
-        x = self.pma_mechanism(x, sensitivity=sensitivity)      # perturb
+        x = self.gm.perturb(x, sensitivity=sensitivity)         # perturb
         return x
 
     def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
