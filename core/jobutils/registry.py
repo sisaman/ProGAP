@@ -61,19 +61,14 @@ class WandBJobRegistry:
                 extended_config['attack'] = attack
 
             if not self._exists(extended_config):
-                self.df_jobs = pd.concat([self.df_jobs, pd.DataFrame(config, index=[0])], ignore_index=True)
+                args = f" {method} {attack if attack is not None else ''} "
                 options = ' '.join([f' --{param} {value} ' for param, value in config.items()])
-                args = f" {method}"
-                if attack is not None:
-                    args += f" {attack} "
                 command = f'python {main_file} {args} {options} --logger wandb --project {self.project}'
                 command = ' '.join(command.split())
                 jobs.append(command)
 
-                if len(self.df_jobs) % 100 == 0:
-                    console.print(len(self.df_jobs))
-
         self.job_list += jobs
+        console.info(f'{len(self.job_list)} jobs registered')
         return jobs
 
     def save(self, path: str, sort=False, shuffle=False):
@@ -84,7 +79,11 @@ class WandBJobRegistry:
             sort (bool, optional): Sort the job list. Defaults to False.
             shuffle (bool, optional): Shuffle the job list. Defaults to False.
         """
+
         assert not (sort and shuffle), 'cannot sort and shuffle at the same time'
+
+        # remove duplicates
+        self.job_list = list(dict.fromkeys(self.job_list))
 
         if sort:
             jobs = sorted(self.job_list)
@@ -112,10 +111,9 @@ class WandBJobRegistry:
             return False
         else:
             # find rows in df_jobs corresponding to runs that match config
-            rows = self.df_jobs.loc[np.all([self.df_jobs[k] == v for k, v in config.items()], axis=0), :]
-            return len(rows) > 0
+            return np.all([self.df_jobs[k] == v for k, v in config.items()], axis=0).any()
 
-    def _product_dict(self, params):
+    def _product_dict(self, params: dict) -> list[dict]:
         """Generate all possible combinations of the parameters.
             
         Args:
@@ -124,7 +122,9 @@ class WandBJobRegistry:
         Yields:
             dict: Dictionary of individual parameters.
         """
+        configs = []
         keys = params.keys()
         vals = params.values()
         for instance in product(*vals):
-            yield dict(zip(keys, instance))
+            configs.append(dict(zip(keys, instance)))
+        return configs
