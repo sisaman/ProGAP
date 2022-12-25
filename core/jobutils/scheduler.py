@@ -42,63 +42,42 @@ class JobScheduler:
             list[str]: The list of failed job commands.
         """
 
-        cluster = self.cluster_resolver.make(
+        total = len(self.job_list)
+        batch_size = 1000
+        progress = SchedulerProgress(total=total, console=console)
+
+        num_failed_jobs = 0
+        failures_dir = os.path.join(self.job_dir, 'failures')
+        os.makedirs(failures_dir, exist_ok=True)
+
+        cluster: JobQueueCluster = self.cluster_resolver.make(
             self.scheduler,
             job_name=f'dask-{self.name}',
             log_directory=os.path.join(self.job_dir, 'logs'),
         )
         
-        with cluster:
-            total = len(self.job_list)
-            cluster.adapt(minimum=min(100, total))
+        with cluster:   
+            cluster.adapt(minimum=min(batch_size, total))
             
             with Client(cluster) as client:
-                futures = client.map(self.execute, range(1, total + 1))
-                progress = SchedulerProgress(total=total, console=console)
-                
-                failed_jobs = {}
-                failures_dir = os.path.join(self.job_dir, 'failures')
-                os.makedirs(failures_dir, exist_ok=True)
-
-                try:
-                    with progress:
+                with progress:
+                    for i in range(0, total, batch_size):
+                        futures = client.map(
+                            lambda cmd: subprocess.run(args=cmd.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT),
+                            self.job_list[i:i+batch_size],
+                        )
                         for future in as_completed(futures, with_results=False):
                             try:
                                 future.result()
                                 progress.update(failed=False)
                             except CalledProcessError as e:
+                                num_failed_jobs += 1
                                 job_cmd = ' '.join(e.cmd)
-                                failed_jobs[job_cmd] = e.output.decode()
-                                with open(os.path.join(failures_dir, f'{len(failed_jobs)}.log'), 'w') as f:
+                                failed_job_output = e.output.decode()
+                                with open(os.path.join(failures_dir, f'{num_failed_jobs}.log'), 'w') as f:
                                     print(job_cmd, end='\n\n', file=f)
-                                    print(failed_jobs[job_cmd], file=f)
+                                    print(failed_job_output, file=f)
                                 progress.update(failed=True)
-                except KeyboardInterrupt:
-                    console.warning('Graceful Shutdown')
-
-                return failed_jobs
-
-    def execute(self, line: int = None):
-        """Execute all or a single line of the job file.
-
-        Args:
-            line (int, optional): The line to execute (starting from 1). 
-                Defaults to None, which runs all the lines.
-        
-        Raises:
-            CalledProcessError: If the command returns a non-zero exit status.
-        """
-
-        if line is None:
-            for cmd in self.job_list:
-                subprocess.run(cmd.split())
-        else:
-            subprocess.run(
-                args=self.job_list[line - 1].split(), 
-                check=True, 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.STDOUT
-            )
 
     cluster_resolver = ClassResolver.from_subclasses(JobQueueCluster, suffix='Cluster')
 
