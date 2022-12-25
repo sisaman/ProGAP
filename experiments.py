@@ -7,22 +7,22 @@ from core.jobutils.scheduler import JobScheduler
 
 def create_train_commands(registry: WandBJobRegistry) -> list[str]:
     # ### Hyper-parameters
-    datasets = ['facebook', 'reddit', 'amazon']
-    batch_size = {'facebook': 256, 'reddit': 2048, 'amazon': 4096}
+    datasets = ['facebook', 'reddit', 'amazon', 'computers', 'twitch', 'facebook-pages', 'flickr']
+    batch_size = {'facebook': 256, 'reddit': 2048, 'amazon': 4096, 'computers': 256, 'twitch': 256, 'facebook-pages': 256, 'flickr': 2048}
 
     progap_methods  = ['progap-inf', 'progap-edp', 'progap-ndp']
-    # gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
+    gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
     # sage_methods = ['sage-inf', 'sage-edp', 'sage-ndp']
-    # mlp_methods  = ['mlp', 'mlp-dp']
+    mlp_methods  = ['mlp', 'mlp-dp']
 
     inf_methods  = ['progap-inf'
-                    # , 'gap-inf', 'sage-inf', 'mlp'
+                    , 'gap-inf'
                     ]
     edp_methods  = ['progap-edp', 
-                    # 'gap-edp', 'sage-edp', 'mlp'
+                    'gap-edp', 'mlp'
                     ]
     ndp_methods  = ['progap-ndp', 
-                    # 'gap-ndp', 'sage-ndp', 'mlp-dp'
+                    'gap-ndp', 'mlp-dp'
                     ]
 
     all_methods  = inf_methods + edp_methods + ndp_methods
@@ -35,25 +35,25 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             hparams[dataset][method]['head_layers'] = 1
             hparams[dataset][method]['jk'] = 'cat'
             hparams[dataset][method]['stages'] = [2, 3, 4, 5, 6]
-        # # For GAP methods
-        # for method in gap_methods:
-        #     hparams[dataset][method]['encoder_layers'] = 2
-        #     hparams[dataset][method]['base_layers'] = 1
-        #     hparams[dataset][method]['head_layers'] = 1
-        #     hparams[dataset][method]['combine'] = 'cat'
-        #     hparams[dataset][method]['hops'] = [1, 2, 3, 4, 5]
+        # For GAP methods
+        for method in gap_methods:
+            hparams[dataset][method]['encoder_layers'] = 2
+            hparams[dataset][method]['base_layers'] = 1
+            hparams[dataset][method]['head_layers'] = 1
+            hparams[dataset][method]['combine'] = 'cat'
+            hparams[dataset][method]['hops'] = [1, 2, 3, 4, 5]
         # # For SAGE methods
         # for method in sage_methods:
         #     hparams[dataset][method]['base_layers'] = 2
         #     hparams[dataset][method]['head_layers'] = 1
         #     if method != 'sage-ndp':
         #         hparams[dataset][method]['mp_layers'] = [1, 2, 3, 4, 5]
-        # # For MLP methods
-        # for method in mlp_methods:
-        #     hparams[dataset][method]['num_layers'] = 3
+        # For MLP methods
+        for method in mlp_methods:
+            hparams[dataset][method]['num_layers'] = 3
         # For graph-based NDP methods
         for method in set(ndp_methods) - {'mlp-dp'}:
-            hparams[dataset][method]['max_degree'] = [100, 200, 300, 400]
+            hparams[dataset][method]['max_degree'] = [50, 100, 200, 300, 400]
         # For all methods
         for method in all_methods:
             hparams[dataset][method]['hidden_dim'] = 16
@@ -62,16 +62,13 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             hparams[dataset][method]['learning_rate'] = [0.01, 0.05]
             hparams[dataset][method]['repeats'] = 10
             if method in ndp_methods:
-                hparams[dataset][method]['max_grad_norm'] = 1
+                hparams[dataset][method]['max_grad_norm'] = [0.1, 0.5, 1.0]
                 hparams[dataset][method]['epochs'] = [5, 10]
                 hparams[dataset][method]['batch_size'] = batch_size[dataset]
             else:
                 hparams[dataset][method]['batch_norm'] = True
                 hparams[dataset][method]['epochs'] = 100
                 hparams[dataset][method]['batch_size'] = 'full'
-        # # For GAP methods
-        # for method in gap_methods:
-        #     hparams[dataset][method]['encoder_epochs'] = hparams[dataset][method]['epochs']
 
     # ### Accuracy/Privacy Trade-off
     for dataset in datasets:
@@ -186,8 +183,7 @@ def create_attack_commands(registry: WandBJobRegistry) -> list[str]:
                 hparams[dataset][method]['shadow_batch_size'] = 'full'
             if method != 'sage-ndp':
                 hparams[dataset][method]['shadow_val_interval'] = 0
-            if method in gap_methods:
-                hparams[dataset][method]['shadow_encoder_epochs'] = hparams[dataset][method]['shadow_epochs']
+
             hparams[dataset][method]['num_nodes_per_class'] = 1000
             hparams[dataset][method]['attack_hidden_dim'] = 64
             hparams[dataset][method]['attack_num_layers'] = 3
@@ -260,7 +256,11 @@ def run(job_file: str, scheduler_name: str) -> None:
         scheduler_name (str): Name of the scheduler to use.
     """
     scheduler = JobScheduler(job_file=job_file, scheduler=scheduler_name)
-    scheduler.submit()
+    try:
+        scheduler.submit()
+    except KeyboardInterrupt:
+        console.warning('Graceful shutdown')
+
 
 
 def main() -> None:
