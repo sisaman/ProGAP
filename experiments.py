@@ -53,7 +53,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             hparams[dataset][method]['num_layers'] = 3
         # For graph-based NDP methods
         for method in set(ndp_methods) - {'mlp-dp'}:
-            hparams[dataset][method]['max_degree'] = [50, 100, 200, 300, 400]
+            hparams[dataset][method]['max_degree'] = [50, 100, 200, 400]
         # For all methods
         for method in all_methods:
             hparams[dataset][method]['hidden_dim'] = 16
@@ -62,7 +62,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             hparams[dataset][method]['learning_rate'] = [0.01, 0.05]
             hparams[dataset][method]['repeats'] = 10
             if method in ndp_methods:
-                hparams[dataset][method]['max_grad_norm'] = [0.1, 0.5, 1.0]
+                hparams[dataset][method]['max_grad_norm'] = 1.0
                 hparams[dataset][method]['epochs'] = [5, 10]
                 hparams[dataset][method]['batch_size'] = batch_size[dataset]
             else:
