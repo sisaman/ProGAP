@@ -8,7 +8,7 @@ from core.jobutils.scheduler import JobScheduler
 def create_train_commands(registry: WandBJobRegistry) -> list[str]:
     # ### Hyper-parameters
     datasets = ['facebook', 'reddit', 'amazon', 'computers', 'twitch', 'facebook-pages', 'flickr', 'facebook-100']
-    batch_size = {'facebook': 256, 'reddit': 2048, 'amazon': 4096, 'computers': 256, 'twitch': 256, 'facebook-pages': 256, 'flickr': 2048}
+    batch_size = {'facebook': 256, 'reddit': 2048, 'amazon': 4096, 'computers': 256, 'twitch': 256, 'facebook-pages': 256, 'flickr': 2048, 'facebook-100': 4096}
 
     progap_methods  = ['progap-inf', 'progap-edp', 'progap-ndp']
     gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
