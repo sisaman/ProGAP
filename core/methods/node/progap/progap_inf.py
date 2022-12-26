@@ -7,6 +7,7 @@ from torch_sparse import SparseTensor, matmul
 from class_resolver.contrib.torch import activation_resolver
 from core import console
 from core.args.utils import ArgInfo
+from core.models import JumpingKnowledge as JK
 from core.methods.node.base import NodeClassification
 from core.modules.base import Metrics, TrainableModule
 from core.modules.node.prog import ProgressiveModule
@@ -22,7 +23,7 @@ class ProGAP (NodeClassification):
                  hidden_dim:      Annotated[int,   ArgInfo(help='dimension of the hidden layers')] = 16,
                  encoder_layers:  Annotated[int,   ArgInfo(help='number of encoder MLP layers')] = 1,
                  head_layers:     Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
-                 jk:              Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=['cat', 'max', 'lstm', 'attn', 'sum'])] = None,
+                 jk:              Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=JK.supported_modes)] = None,
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,

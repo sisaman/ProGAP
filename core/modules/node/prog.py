@@ -3,9 +3,8 @@ from typing_extensions import Self
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-from core.models import MLP
+from core.models import MLP, JumpingKnowledge
 from torch_geometric.data import Data
-from torch_geometric.nn import JumpingKnowledge
 from core.modules.base import Metrics, Stage, TrainableModule
 
 
@@ -27,7 +26,13 @@ class ProgressiveModule(TrainableModule):
         self.normalize = normalize
         self.jk_mode = jk_mode
         if jk_mode is not None:
-            self.jk = JumpingKnowledge(mode=jk_mode, channels=hidden_dim, num_layers=2)
+            self.jk = JumpingKnowledge(
+                mode=jk_mode, 
+                hidden_dim=hidden_dim, 
+                channels=hidden_dim,
+                num_layers=2, 
+                num_heads=2
+            )
 
         self.encoder = MLP(
             hidden_dim=hidden_dim,
@@ -105,7 +110,5 @@ class ProgressiveModule(TrainableModule):
             self.jk.load_state_dict(other.jk.state_dict())
         
     def reset_parameters(self):
-        self.encoder.reset_parameters()
-        self.head.reset_parameters()
-        if hasattr(self, 'jk'):
-            self.jk.reset_parameters()
+        for module in self.children():
+            module.reset_parameters()
