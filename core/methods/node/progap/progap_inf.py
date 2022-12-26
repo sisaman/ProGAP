@@ -27,10 +27,12 @@ class ProGAP (NodeClassification):
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
+                 transfer:        Annotated[bool,  ArgInfo(help='if true, then model uses transfer learning')] = False,
                  **kwargs:        Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
                  ):
 
         super().__init__(num_classes, **kwargs)
+        self.transfer = transfer
 
         self.modules = [
             ProgressiveModule(
@@ -104,8 +106,8 @@ class ProGAP (NodeClassification):
                 
                 data.x = self._aggregate(x, data.adj_t)
 
-            self.modules[i].load(self.modules[i-1],
-                encoder=i > 1,
+            self.modules[i].transfer(self.modules[i-1],
+                encoder=self.transfer and i > 1,
                 jk=False,
                 head=False,
             )

@@ -99,15 +99,15 @@ class ProgressiveModule(TrainableModule):
         x, y = self(data.x, getattr(data, 'h', None))
         return x, torch.softmax(y, dim=-1)
 
-    def load(self, other: Self, encoder: bool = True, head: bool = True, jk: bool = True):
+    def transfer(self, pm: Self, encoder: bool = True, head: bool = True, jk: bool = True):
         if encoder:
-            self.encoder.load_state_dict(other.encoder.state_dict())
+            self.encoder.load_state_dict(pm.encoder.state_dict())
 
         if head:
-            self.head.load_state_dict(other.head.state_dict())
+            self.head.load_state_dict(pm.head.state_dict())
 
         if jk and self.jk_mode not in (None, 'cat'):
-            self.jk.load_state_dict(other.jk.state_dict())
+            self.jk.load_state_dict(pm.jk.state_dict())
         
     def reset_parameters(self):
         for module in self.children():
