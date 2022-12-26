@@ -11,6 +11,7 @@ from core.data.transforms import FilterClassByCount
 from core.data.transforms import RemoveSelfLoops
 from core.data.transforms import RemoveIsolatedNodes
 from core.datasets import Facebook, Amazon
+from core.datasets.facebook import Facebook100
 from core.datasets.twitch import load_twitch
 from core.utils import dict2table
 
@@ -57,6 +58,12 @@ class DatasetLoader:
             transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
                 # FilterClassByCount(min_count=10000, remove_unlabeled=True)
+            ])
+        ),
+        'facebook-100': partial(Facebook100, target='year', 
+            transform=Compose([
+                RandomNodeSplit(num_val=0.1, num_test=0.15), 
+                FilterClassByCount(min_count=100000, remove_unlabeled=True)
             ])
         ),
     }
