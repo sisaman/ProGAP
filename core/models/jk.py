@@ -16,21 +16,31 @@ class JumpingKnowledge(Module):
         elif mode == 'lstm':
             self.lstm = JK(mode='lstm', **kwargs)
 
-    def forward(self, xs: list[Tensor]) -> Tensor:
+    def forward(self, xs: Tensor) -> Tensor:
+        """forward propagation
+
+        Args:
+            xs (Tensor): input with shape (batch_size, hidden_dim, num_stages)
+
+        Returns:
+            Tensor: aggregated output with shape (batch_size, hidden_dim)
+        """
         if self.mode == 'cat':
+            xs = xs.unbind(dim=-1)
             return torch.cat(xs, dim=-1)
         elif self.mode == 'sum':
-            return torch.stack(xs, dim=-1).sum(dim=-1)
+            return xs.sum(dim=-1)
         elif self.mode == 'mean':
-            return torch.stack(xs, dim=-1).mean(dim=-1)
+            return xs.mean(dim=-1)
         elif self.mode == 'max':
-            return torch.stack(xs, dim=-1).max(dim=-1)[0]
+            return xs.max(dim=-1)[0]
         elif self.mode == 'attn':
-            H = torch.stack(xs, dim=1)  # (node, hop, dim)
+            H = xs.transpose(1, 2)  # (node, hop, dim)
             W = self.fc(H).softmax(dim=1)  # (node, hop, head)
             out = H.transpose(1, 2).matmul(W).view(-1, self.hidden_dim * self.num_heads)
             return out
         else:
+            xs = xs.unbind(dim=-1)
             self.lstm(xs)
 
     def reset_parameters(self):

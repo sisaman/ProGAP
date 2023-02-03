@@ -60,14 +60,13 @@ class ProGAP (NodeClassification):
             data = self.data
         else:
             data = data.to(self.device, non_blocking=True)
+            xs = torch.empty(0, device=self.device)
+
             for i in range(1, len(self.modules)):
                 x, _ = self.modules[i - 1].predict(data)
-                if not hasattr(data, 'h'):
-                    data.h = x.unsqueeze(-1)
-                else:
-                    data.h = torch.cat([data.h, x.unsqueeze(-1)], dim=-1)
-                
+                xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
                 data.x = self._aggregate(x, data.adj_t)
+                data.xs = xs
 
         test_metics = self.trainer.test(
             dataloader=self.data_loader(data, 'test'),
@@ -82,35 +81,32 @@ class ProGAP (NodeClassification):
             data = self.data
         else:
             data = data.to(self.device, non_blocking=True)
+            xs = torch.empty(0, device=self.device)
+
             for i in range(1, len(self.modules)):
                 x, _ = self.modules[i - 1].predict(data)
-                if not hasattr(data, 'h'):
-                    data.h = x.unsqueeze(-1)
-                else:
-                    data.h = torch.cat([data.h, x.unsqueeze(-1)], dim=-1)
-                
+                xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
                 data.x = self._aggregate(x, data.adj_t)
+                data.xs = xs
         
         return self.modules[-1].predict(data)
 
     def _train(self, data: Data, prefix: str = '') -> Metrics:
         n = len(self.modules)
+        xs = torch.empty(0, device=self.device)
         
         for i in range(n):
             if i > 0:
                 x, _ = self.modules[i - 1].predict(data)
-                if not hasattr(data, 'h'):
-                    data.h = x.unsqueeze(-1)
-                else:
-                    data.h = torch.cat([data.h, x.unsqueeze(-1)], dim=-1)
-                
+                xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
                 data.x = self._aggregate(x, data.adj_t)
+                data.xs = xs
 
-            self.modules[i].transfer(self.modules[i-1],
-                encoder=self.transfer and i > 1,
-                jk=False,
-                head=False,
-            )
+                self.modules[i].transfer(self.modules[i-1],
+                    encoder=self.transfer and i > 1,
+                    jk=False,
+                    head=False,
+                )
 
             console.log(f'Fitting stage {i+1} of {n}')
             self.trainer.reset()

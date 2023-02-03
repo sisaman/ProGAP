@@ -54,12 +54,12 @@ class ProgressiveModule(TrainableModule):
             plain_last=True,
         )
 
-    def forward(self, x: Tensor, h_stack: Tensor) -> tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, xs: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
         """forward propagation
 
         Args:
             x (Tensor): node features
-            h_stack (Tensor): historical embeddings with size (num_nodes, hidden_dim, num_stages)
+            xs (Tensor, optional): historical embeddings with size (num_nodes, hidden_dim, num_stages)
 
         Returns:
             tuple[Tensor, Tensor]: node embeddings, node unnormalized predictions
@@ -67,9 +67,9 @@ class ProgressiveModule(TrainableModule):
         x = self.encoder(x)
         h = x
 
-        if hasattr(self, 'jk'):
-            xs = h_stack.unbind(dim=-1)
-            x = self.jk(xs + (x,))
+        if self.jk_mode is not None:
+            xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
+            x = self.jk(xs)
 
         if self.normalize:
             x = F.normalize(x, p=2, dim=-1)
@@ -80,9 +80,9 @@ class ProgressiveModule(TrainableModule):
     def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
         mask = data[f'{stage}_mask']
         x, y = data.x[mask], data.y[mask]
-        h = data.h[mask] if hasattr(data, 'h') else None
+        xs = data.xs[mask] if hasattr(data, 'xs') else None
         
-        preds = F.log_softmax(self(x, h)[1], dim=-1)
+        preds = F.log_softmax(self(x, xs)[1], dim=-1)
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
         metrics = {'acc': acc}
 
@@ -96,7 +96,7 @@ class ProgressiveModule(TrainableModule):
     @torch.no_grad()
     def predict(self, data: Data) -> Tensor:
         self.eval()
-        x, y = self(data.x, getattr(data, 'h', None))
+        x, y = self(data.x, getattr(data, 'xs', None))
         return x, torch.softmax(y, dim=-1)
 
     def transfer(self, pm: Self, encoder: bool = True, head: bool = True, jk: bool = True):
