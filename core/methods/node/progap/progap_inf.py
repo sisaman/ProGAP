@@ -3,6 +3,7 @@ from typing import Annotated, Optional
 import torch.nn.functional as F
 from torch.optim import Adam, SGD, Optimizer
 from torch_geometric.data import Data
+from torch_geometric.nn import knn_graph
 from torch_sparse import SparseTensor, matmul
 from class_resolver.contrib.torch import activation_resolver
 from core import console
@@ -12,6 +13,7 @@ from core.methods.node.base import NodeClassification
 from core.modules.base import Metrics, TrainableModule
 from core.modules.node.prog import ProgressiveModule
 from core import globals
+from torch_sparse import SparseTensor
 
 
 class ProGAP (NodeClassification):
@@ -56,17 +58,12 @@ class ProGAP (NodeClassification):
 
     def test(self, data: Optional[Data] = None, prefix: str = '') -> Metrics:
         """Predict the labels for the given data, or the training data if data is None."""
+        
         if data is None or data == self.data:
             data = self.data
         else:
             data = data.to(self.device, non_blocking=True)
-            xs = torch.empty(0, device=self.device)
-
-            for i in range(1, len(self.modules)):
-                x, _ = self.modules[i - 1].predict(data)
-                xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
-                data.x = self._aggregate(x, data.adj_t)
-                data.xs = xs
+            self.pipeline(data, train=False)
 
         test_metics = self.trainer.test(
             dataloader=self.data_loader(data, 'test'),
@@ -77,21 +74,19 @@ class ProGAP (NodeClassification):
 
     def predict(self, data: Optional[Data] = None) -> torch.Tensor:
         """Predict the labels for the given data, or the training data if data is None."""
+        
         if data is None or data == self.data:
             data = self.data
         else:
             data = data.to(self.device, non_blocking=True)
-            xs = torch.empty(0, device=self.device)
-
-            for i in range(1, len(self.modules)):
-                x, _ = self.modules[i - 1].predict(data)
-                xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
-                data.x = self._aggregate(x, data.adj_t)
-                data.xs = xs
+            self.pipeline(data, train=False)
         
         return self.modules[-1].predict(data)
 
     def _train(self, data: Data, prefix: str = '') -> Metrics:
+        return self.pipeline(data, train=True, prefix=prefix)
+
+    def pipeline(self, data: Data, train: bool=False, prefix: str = '') -> Optional[Metrics]:
         n = len(self.modules)
         xs = torch.empty(0, device=self.device)
         
@@ -99,7 +94,16 @@ class ProGAP (NodeClassification):
             if i > 0:
                 x, _ = self.modules[i - 1].predict(data)
                 xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
-                data.x = self._aggregate(x, data.adj_t)
+                adj_t = data.adj_t
+
+                # if i > 0:
+                #     edge_index = knn_graph(x, k=10, cosine=False, flow='target_to_source')
+                #     adj_t = adj_t + SparseTensor.from_edge_index(
+                #         edge_index=edge_index,
+                #         sparse_sizes=(x.size(0), x.size(0))
+                #     )
+                
+                data.x = self._aggregate(x, adj_t)
                 data.xs = xs
 
                 self.modules[i].transfer(self.modules[i-1],
@@ -108,21 +112,23 @@ class ProGAP (NodeClassification):
                     head=False,
                 )
 
-            console.log(f'Fitting stage {i+1} of {n}')
-            self.trainer.reset()
-            module = self.modules[i].to(self.device)
-            metrics = self.trainer.fit(
-                model=module,
-                epochs=self.epochs,
-                optimizer=self.configure_optimizer(module),
-                train_dataloader=self.data_loader(data, 'train'), 
-                val_dataloader=self.data_loader(data, 'val'),
-                test_dataloader=self.data_loader(data, 'test') if globals['debug'] else None,
-                checkpoint=True,
-                prefix=prefix,
-            )
+            if train:
+                console.info(f'Fitting stage {i+1} of {n}')
+                self.trainer.reset()
+                module = self.modules[i].to(self.device)
+                metrics = self.trainer.fit(
+                    model=module,
+                    epochs=self.epochs,
+                    optimizer=self.configure_optimizer(module),
+                    train_dataloader=self.data_loader(data, 'train'), 
+                    val_dataloader=self.data_loader(data, 'val'),
+                    test_dataloader=self.data_loader(data, 'test') if globals['debug'] else None,
+                    checkpoint=True,
+                    prefix=prefix,
+                )
 
-        return metrics
+        return metrics if train else None
+        
 
     def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
         x = F.normalize(x, p=2, dim=-1)             # normalize
