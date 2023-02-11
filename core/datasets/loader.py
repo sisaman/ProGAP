@@ -17,6 +17,12 @@ from core.datasets.tweibo import TWeibo
 from core.utils import dict2table
 
 
+def load_wenet(root: str, transform=None) -> Data:
+    data = torch.load(os.path.join(root, 'data.pt'))
+    data = data if transform is None else transform(data)
+    return [data]
+
+
 class DatasetLoader:
     supported_datasets = {
         'reddit': partial(Reddit, 
@@ -68,6 +74,12 @@ class DatasetLoader:
             ])
         ),
         'tweibo': partial(TWeibo,
+            transform=Compose([
+                RandomNodeSplit(num_val=0.1, num_test=0.15), 
+                # FilterClassByCount(min_count=10000, remove_unlabeled=True)
+            ])
+        ),
+        'wenet': partial(load_wenet,
             transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
                 # FilterClassByCount(min_count=10000, remove_unlabeled=True)
