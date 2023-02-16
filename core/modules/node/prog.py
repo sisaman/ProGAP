@@ -80,7 +80,7 @@ class ProgressiveModule(TrainableModule):
     def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
         mask = data[f'{stage}_mask']
         x, y = data.x[mask], data.y[mask]
-        xs = data.xs[mask] if hasattr(data, 'xs') else None
+        xs = data.xs[mask] if self.jk_mode else None
         
         preds = F.log_softmax(self(x, xs)[1], dim=-1)
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
