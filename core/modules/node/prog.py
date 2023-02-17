@@ -82,13 +82,13 @@ class ProgressiveModule(TrainableModule):
         x, y = data.x[mask], data.y[mask]
         xs = data.xs[mask] if self.jk_mode else None
         
-        preds = F.log_softmax(self(x, xs)[1], dim=-1)
+        preds: Tensor = self(x, xs)[1]
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
         metrics = {'acc': acc}
 
         loss = None
         if stage != 'test':
-            loss = F.nll_loss(input=preds, target=y)
+            loss = F.cross_entropy(input=preds, target=y)
             metrics['loss'] = loss.detach()
 
         return loss, metrics
