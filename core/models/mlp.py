@@ -34,10 +34,11 @@ class MLP(Module):
         dimensions = [hidden_dim] * (num_layers - 1) + [output_dim] * (num_layers > 0)
         self.layers: list[Linear] = ModuleList([Linear(-1, dim) for dim in dimensions])
         
-        num_bns = batch_norm * (num_layers - int(plain_last))
         self.bns: list[BatchNorm1d] = []
         if batch_norm:
-            self.bns = ModuleList([BatchNorm1d(hidden_dim) for _ in range(num_bns)])
+            self.bns = ModuleList([BatchNorm1d(hidden_dim) for _ in range(num_layers - 1)])
+            if not plain_last:
+                self.bns.append(BatchNorm1d(output_dim))
         
     def forward(self, x: Tensor) -> Tensor:
         for i, layer in enumerate(self.layers):
