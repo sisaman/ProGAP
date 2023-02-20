@@ -1,10 +1,12 @@
 import functools
-from typing import Annotated, Callable
+from typing import Annotated, Callable, TypeVar
 from uuid import uuid1
 from abc import ABC, abstractmethod
 from torch.nn import Module
 from core.args.utils import ArgInfo
-from core.utils import RT
+
+
+RT = TypeVar('RT')
 
 
 def if_enabled(func: Callable[..., RT]) -> Callable[..., RT]:
