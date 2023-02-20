@@ -1,31 +1,11 @@
 import math
-import random
-from typing import Callable, Iterable, TypeVar, Optional
+from typing import Callable, Optional
 import numpy as np
-import torch
-from itertools import tee
 from numpy.typing import ArrayLike, NDArray
 from rich.table import Table
 from rich.highlighter import ReprHighlighter
 from rich import box
 from tabulate import tabulate
-
-
-RT = TypeVar('RT')
-
-
-def seed_everything(seed: int):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-
-def pairwise(iterable: Iterable):
-    # pairwise('ABCDEFG') --> AB BC CD DE EF FG
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
 
 
 def bootstrap(data: ArrayLike, 
