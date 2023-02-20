@@ -13,8 +13,9 @@ with console.status('importing modules'):
     from core.args.formatter import ArgumentDefaultsRichHelpFormatter
     from core.loggers import Logger
     from core.methods.node import supported_methods, NodeClassification
-    from core.utils import seed_everything, confidence_interval
+    from core.utils import confidence_interval
     from torch_geometric.data import Data
+    from torch_geometric import seed_everything
 
 
 def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
