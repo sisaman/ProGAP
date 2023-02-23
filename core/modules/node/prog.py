@@ -1,5 +1,4 @@
 from typing import Callable, Optional
-from typing_extensions import Self
 import torch
 from torch import Tensor
 import torch.nn.functional as F
@@ -98,16 +97,6 @@ class ProgressiveModule(TrainableModule):
         self.eval()
         x, y = self(data.x, getattr(data, 'xs', None))
         return x, torch.softmax(y, dim=-1)
-
-    def transfer(self, pm: Self, encoder: bool = True, head: bool = True, jk: bool = True):
-        if encoder:
-            self.encoder.load_state_dict(pm.encoder.state_dict())
-
-        if head:
-            self.head.load_state_dict(pm.head.state_dict())
-
-        if jk and self.jk_mode not in (None, 'cat'):
-            self.jk.load_state_dict(pm.jk.state_dict())
         
     def reset_parameters(self):
         for module in self.children():
