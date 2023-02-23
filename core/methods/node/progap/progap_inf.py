@@ -3,7 +3,6 @@ from typing import Annotated, Optional
 import torch.nn.functional as F
 from torch.optim import Adam, SGD, Optimizer
 from torch_geometric.data import Data
-from torch_geometric.nn import knn_graph
 from torch_sparse import SparseTensor, matmul
 from class_resolver.contrib.torch import activation_resolver
 from core import console
@@ -95,13 +94,6 @@ class ProGAP (NodeClassification):
                 x, _ = self.modules[i - 1].predict(data)
                 xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
                 adj_t = data.adj_t
-
-                # if i > 0:
-                #     edge_index = knn_graph(x, k=10, cosine=False, flow='target_to_source')
-                #     adj_t = adj_t + SparseTensor.from_edge_index(
-                #         edge_index=edge_index,
-                #         sparse_sizes=(x.size(0), x.size(0))
-                #     )
                 
                 data.x = self._aggregate(x, adj_t)
                 data.xs = xs
