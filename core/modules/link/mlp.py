@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 import torch
 from torch import Tensor
-from core.models import MLP
+from core.nn import MLP
 from torch_geometric.data import Data
 from torch_geometric.nn import GAE, InnerProductDecoder
 from torchmetrics.functional import auroc

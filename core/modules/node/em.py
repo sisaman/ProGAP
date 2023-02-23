@@ -3,7 +3,7 @@ import torch
 from torch import Tensor
 import torch.nn.functional as F
 from torch.nn import BatchNorm1d, Dropout
-from core.models import MLP
+from core.nn import MLP
 from torch_geometric.data import Data
 from core.modules.node.mlp import MLPNodeClassifier
 

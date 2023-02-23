@@ -5,9 +5,9 @@ from torch_geometric.data import Data
 from class_resolver.contrib.torch import activation_resolver
 from core import console
 from core.args.utils import ArgInfo
-from core.models import JumpingKnowledge as JK
+from core.nn import JumpingKnowledge as JK
 from core.methods.node.base import NodeClassification
-from core.models.nap import NAP
+from core.nn.nap import NAP
 from core.modules.base import Metrics, TrainableModule
 from core.modules.node.prog import ProgressiveModule
 from core import globals

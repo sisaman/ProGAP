@@ -3,9 +3,9 @@ import torch
 from torch import Tensor
 import torch.nn.functional as F
 from torch_sparse import SparseTensor
-from core.models import MLP
+from core.nn import MLP
 from torch_geometric.data import Data
-from core.models.sage import SAGE
+from core.nn.sage import SAGE
 from core.modules.base import Metrics, Stage, TrainableModule
 
 

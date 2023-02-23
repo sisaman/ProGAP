@@ -4,7 +4,7 @@ from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.node.progap.progap_inf import ProGAP
-from core.models.nap import NAP
+from core.nn.nap import NAP
 from core.privacy.mechanisms import ComposedGaussianMechanism
 from core.modules.base import Metrics
 

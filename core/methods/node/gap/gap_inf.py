@@ -7,7 +7,7 @@ from torch_sparse import SparseTensor, matmul
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.node.base import NodeClassification
-from core.models.multi_mlp import MultiMLP
+from core.nn.multi_mlp import MultiMLP
 from core.modules.base import Metrics
 from core.modules.node.cm import ClassificationModule
 from core.modules.node.em import EncoderModule
