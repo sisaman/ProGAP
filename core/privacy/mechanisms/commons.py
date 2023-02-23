@@ -21,7 +21,7 @@ class InfMechanism(Mechanism):
 
 class GaussianMechanism(NoisyMechanism):
     def __init__(self, noise_scale: float):
-        # "noise_scale" is the std of the noise divide by the L2 sensitivity
+        # "noise_scale" is the std of the noise divided by the L2 sensitivity
         super().__init__(noise_scale=noise_scale)
         gm = ExactGaussianMechanism(sigma=noise_scale)
         self.name = 'GaussianMechanism'
