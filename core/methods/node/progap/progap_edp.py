@@ -1,13 +1,11 @@
 import numpy as np
-import torch
-import torch.nn.functional as F
 from typing import Annotated, Literal, Union
 from torch_geometric.data import Data
-from torch_sparse import SparseTensor, matmul
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.node.progap.progap_inf import ProGAP
-from core.privacy.mechanisms import GaussianMechanism, ComposedGaussianMechanism
+from core.models.nap import NAP
+from core.privacy.mechanisms import ComposedGaussianMechanism
 from core.modules.base import Metrics
 
 
@@ -26,12 +24,14 @@ class EdgePrivProgGAP (ProGAP):
         self.epsilon = epsilon
         self.delta = delta
         self.num_edges = None  # will be used to set delta if it is 'auto'
+        
+        # Noise std of NAP is set to 0, and will be calibrated later
+        self.nap = NAP(noise_std=0, sensitivity=1)
 
     def calibrate(self):
-        self.gm = GaussianMechanism(noise_scale=0.0)
         composed_mechanism = ComposedGaussianMechanism(
             noise_scale=1.0,
-            mechanism_list=[self.gm],
+            mechanism_list=[self.nap.gm],
             coeff_list=[len(self.modules) - 1],
         )
         
@@ -49,9 +49,3 @@ class EdgePrivProgGAP (ProGAP):
             self.calibrate()
 
         return super().fit(data, prefix=prefix)
-
-    def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
-        x = F.normalize(x, p=2, dim=-1)             # normalize
-        x = matmul(adj_t, x)                        # aggregate
-        x = self.gm.perturb(x, sensitivity=1)       # perturb
-        return x

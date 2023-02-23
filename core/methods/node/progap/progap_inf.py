@@ -1,18 +1,16 @@
 import torch
 from typing import Annotated, Optional
-import torch.nn.functional as F
 from torch.optim import Adam, SGD, Optimizer
 from torch_geometric.data import Data
-from torch_sparse import SparseTensor, matmul
 from class_resolver.contrib.torch import activation_resolver
 from core import console
 from core.args.utils import ArgInfo
 from core.models import JumpingKnowledge as JK
 from core.methods.node.base import NodeClassification
+from core.models.nap import NAP
 from core.modules.base import Metrics, TrainableModule
 from core.modules.node.prog import ProgressiveModule
 from core import globals
-from torch_sparse import SparseTensor
 
 
 class ProGAP (NodeClassification):
@@ -28,12 +26,10 @@ class ProGAP (NodeClassification):
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
-                 transfer:        Annotated[bool,  ArgInfo(help='if true, then model uses transfer learning')] = False,
                  **kwargs:        Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
                  ):
 
         super().__init__(num_classes, **kwargs)
-        self.transfer = transfer
 
         self.modules = [
             ProgressiveModule(
@@ -48,6 +44,8 @@ class ProGAP (NodeClassification):
                 batch_norm=batch_norm,
             ) for i in range(stages)
         ]
+
+        self.nap = NAP(noise_std=0, sensitivity=1)
 
     def reset_parameters(self):
         for module in self.modules:
@@ -93,16 +91,8 @@ class ProGAP (NodeClassification):
             if i > 0:
                 x, _ = self.modules[i - 1].predict(data)
                 xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
-                adj_t = data.adj_t
-                
-                data.x = self._aggregate(x, adj_t)
+                data.x = self.nap(x, data.adj_t)
                 data.xs = xs
-
-                self.modules[i].transfer(self.modules[i-1],
-                    encoder=self.transfer and i > 1,
-                    jk=False,
-                    head=False,
-                )
 
             if train:
                 console.info(f'Fitting stage {i+1} of {n}')
@@ -120,12 +110,6 @@ class ProGAP (NodeClassification):
                 )
 
         return metrics if train else None
-        
-
-    def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
-        x = F.normalize(x, p=2, dim=-1)             # normalize
-        x = matmul(adj_t, x)                        # aggregate
-        return x
 
     def configure_optimizer(self, module: TrainableModule) -> Optimizer:
         Optim = {'sgd': SGD, 'adam': Adam}[self.optimizer_name]

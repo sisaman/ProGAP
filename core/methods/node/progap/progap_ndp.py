@@ -1,16 +1,14 @@
 import numpy as np
-import torch
 from typing import Annotated, Literal, Union
-import torch.nn.functional as F
 from torch.nn import BatchNorm1d, GroupNorm
 from torch_geometric.data import Data
-from torch_sparse import SparseTensor, matmul
 from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
 from core.data.loader import NodeDataLoader
 from core.methods.node.progap.progap_inf import ProGAP
-from core.privacy.mechanisms import GaussianMechanism, ComposedNoisyMechanism
+from core.models.nap import NAP
+from core.privacy.mechanisms import ComposedNoisyMechanism
 from core.privacy.algorithms import NoisySGD
 from core.data.transforms import BoundOutDegree
 from core.modules.base import Metrics, Stage, TrainableModule
@@ -43,19 +41,21 @@ class NodePrivProGAP (ProGAP):
             **kwargs
         )
 
-        self.modules = [ModuleValidator.fix(module) for module in self.modules]
-        for module in self.modules:
-            ModuleValidator.validate(module, strict=True)
-
         self.epsilon = epsilon
         self.delta = delta
         self.max_degree = max_degree
         self.max_grad_norm = max_grad_norm
         self.num_train_nodes = None  # will be used to set delta if it is 'auto'
 
+        self.modules = [ModuleValidator.fix(module) for module in self.modules]
+        for module in self.modules:
+            ModuleValidator.validate(module, strict=True)
+
+        # Noise std of NAP is set to 0, and will be calibrated later
+        self.nap = NAP(noise_std=0, sensitivity=np.sqrt(max_degree))
+
     def calibrate(self):
         n = len(self.modules)
-        self.gm = GaussianMechanism(noise_scale=0.0)
 
         self.noisy_sgd = NoisySGD(
             noise_scale=0.0, 
@@ -68,7 +68,7 @@ class NodePrivProGAP (ProGAP):
         composed_mechanism = ComposedNoisyMechanism(
             noise_scale=1.0,
             mechanism_list=[
-                self.gm, 
+                self.nap.gm, 
                 self.noisy_sgd
             ],
             coeff_list=[n - 1, n],
@@ -96,13 +96,6 @@ class NodePrivProGAP (ProGAP):
             data = BoundOutDegree(self.max_degree)(data)
 
         return super().fit(data, prefix=prefix)
-
-    def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
-        sensitivity = np.sqrt(self.max_degree)
-        x = F.normalize(x, p=2, dim=-1)                         # normalize
-        x = matmul(adj_t, x)                                    # aggregate
-        x = self.gm.perturb(x, sensitivity=sensitivity)         # perturb
-        return x
 
     def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
         dataloader = super().data_loader(data, stage)
