@@ -13,18 +13,18 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
     batch_size = {'facebook': 256, 'reddit': 2048, 'amazon': 4096, 'facebook-100': 4096, 'wenet': 1024}
 
     progap_methods  = ['progap-inf', 'progap-edp', 'progap-ndp']
-    # gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
+    gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
     # sage_methods = ['sage-inf', 'sage-edp', 'sage-ndp']
-    # mlp_methods  = ['mlp', 'mlp-dp']
+    mlp_methods  = ['mlp', 'mlp-dp']
 
     inf_methods  = ['progap-inf'
-                    # , 'gap-inf'
+                    , 'gap-inf'
                     ]
     edp_methods  = ['progap-edp', 
-                    # 'gap-edp', 'mlp'
+                    'gap-edp', 'mlp'
                     ]
     ndp_methods  = ['progap-ndp', 
-                    # 'gap-ndp', 'mlp-dp'
+                    'gap-ndp', 'mlp-dp'
                     ]
 
     all_methods  = inf_methods + edp_methods + ndp_methods
@@ -37,25 +37,30 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             hparams[dataset][method]['head_layers'] = 1
             hparams[dataset][method]['jk'] = 'cat'
             hparams[dataset][method]['stages'] = [2, 3, 4, 5, 6]
-        # # For GAP methods
-        # for method in gap_methods:
-        #     hparams[dataset][method]['encoder_layers'] = 2
-        #     hparams[dataset][method]['base_layers'] = 1
-        #     hparams[dataset][method]['head_layers'] = 1
-        #     hparams[dataset][method]['combine'] = 'cat'
-        #     hparams[dataset][method]['hops'] = [1, 2, 3, 4, 5]
+        
+        # For GAP methods
+        for method in gap_methods:
+            hparams[dataset][method]['encoder_layers'] = 2
+            hparams[dataset][method]['base_layers'] = 1
+            hparams[dataset][method]['head_layers'] = 1
+            hparams[dataset][method]['combine'] = 'cat'
+            hparams[dataset][method]['hops'] = [1, 2, 3, 4, 5]
+        
         # # For SAGE methods
         # for method in sage_methods:
         #     hparams[dataset][method]['base_layers'] = 2
         #     hparams[dataset][method]['head_layers'] = 1
         #     if method != 'sage-ndp':
         #         hparams[dataset][method]['mp_layers'] = [1, 2, 3, 4, 5]
+        
         # For MLP methods
-        # for method in mlp_methods:
-        #     hparams[dataset][method]['num_layers'] = 3
+        for method in mlp_methods:
+            hparams[dataset][method]['num_layers'] = 3
+        
         # For graph-based NDP methods
         for method in set(ndp_methods) - {'mlp-dp'}:
-            hparams[dataset][method]['max_degree'] = [50, 100, 200, 400]
+            hparams[dataset][method]['max_degree'] = [25, 50, 100, 200, 400]
+        
         # For all methods
         for method in all_methods:
             hparams[dataset][method]['hidden_dim'] = 16
