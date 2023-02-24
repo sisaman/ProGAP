@@ -79,7 +79,7 @@ class Trainer:
         monitor_key = f'{prefix}{self.monitor}'
 
         if checkpoint:
-            best_state_dict = deepcopy(self.model.state_dict())
+            best_state_dict = None
 
         if val_dataloader is None:
             val_dataloader = []
@@ -135,7 +135,7 @@ class Trainer:
             best_metrics = metrics
         else:
             # load best model if checkpointing is enabled
-            if checkpoint:
+            if checkpoint and best_state_dict is not None:
                 self.model.load_state_dict(best_state_dict)
 
         # log and return best metrics
