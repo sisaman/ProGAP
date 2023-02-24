@@ -97,7 +97,7 @@ class DatasetLoader:
 
     def load(self, verbose=False) -> Data:
         data = self.supported_datasets[self.name](root=os.path.join(self.data_dir, self.name))[0]
-        data = Compose([RemoveSelfLoops(), RemoveIsolatedNodes(), AddSelfLoops(), ToSparseTensor()])(data)
+        data = Compose([RemoveSelfLoops(), RemoveIsolatedNodes(), ToSparseTensor()])(data)
 
         if verbose:
             self.print_stats(data)
