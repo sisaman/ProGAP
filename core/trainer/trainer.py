@@ -1,5 +1,4 @@
-import os
-import uuid
+from copy import deepcopy
 import torch
 from torch.types import Number
 from torch.optim import Optimizer
@@ -80,9 +79,7 @@ class Trainer:
         monitor_key = f'{prefix}{self.monitor}'
 
         if checkpoint:
-            os.makedirs('checkpoints', exist_ok=True)
-            checkpoint_path = os.path.join('checkpoints', f'{uuid.uuid1()}.pt')
-            torch.save(self.model.state_dict(), checkpoint_path)
+            best_state_dict = deepcopy(self.model.state_dict())
 
         if val_dataloader is None:
             val_dataloader = []
@@ -119,7 +116,7 @@ class Trainer:
                         num_epochs_without_improvement = 0
 
                         if checkpoint:
-                            torch.save(self.model.state_dict(), checkpoint_path)
+                            best_state_dict = deepcopy(self.model.state_dict())
                     else:
                         num_epochs_without_improvement += 1
                         if num_epochs_without_improvement >= self.patience > 0:
@@ -139,7 +136,7 @@ class Trainer:
         else:
             # load best model if checkpointing is enabled
             if checkpoint:
-                self.model.load_state_dict(torch.load(checkpoint_path))
+                self.model.load_state_dict(best_state_dict)
 
         # log and return best metrics
         Logger.get_instance().log_summary(best_metrics)
