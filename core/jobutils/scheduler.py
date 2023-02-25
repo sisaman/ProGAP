@@ -43,7 +43,7 @@ class JobScheduler:
         """
 
         total = len(self.job_list)
-        batch_size = 1000
+        batch_size = 160  # max number of gpus in the cluster
         progress = SchedulerProgress(total=total, console=console)
 
         num_failed_jobs = 0
