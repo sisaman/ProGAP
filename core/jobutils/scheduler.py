@@ -43,7 +43,6 @@ class JobScheduler:
         """
 
         total = len(self.job_list)
-        batch_size = 1000
         progress = SchedulerProgress(total=total, console=console)
 
         num_failed_jobs = 0
@@ -61,23 +60,22 @@ class JobScheduler:
             
             with Client(cluster) as client:
                 with progress:
-                    for i in range(0, total, batch_size):
-                        futures = client.map(
-                            lambda cmd: subprocess.run(args=cmd.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT),
-                            self.job_list[i:i+batch_size],
-                        )
-                        for future in as_completed(futures, with_results=False):
-                            try:
-                                future.result()
-                                progress.update(failed=False)
-                            except CalledProcessError as e:
-                                num_failed_jobs += 1
-                                job_cmd = ' '.join(e.cmd)
-                                failed_job_output = e.output.decode()
-                                with open(os.path.join(failures_dir, f'{num_failed_jobs}.log'), 'w') as f:
-                                    print(job_cmd, end='\n\n', file=f)
-                                    print(failed_job_output, file=f)
-                                progress.update(failed=True)
+                    futures = client.map(
+                        lambda cmd: subprocess.run(args=cmd.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT),
+                        self.job_list,
+                    )
+                    for future in as_completed(futures, with_results=False):
+                        try:
+                            future.result()
+                            progress.update(failed=False)
+                        except CalledProcessError as e:
+                            num_failed_jobs += 1
+                            job_cmd = ' '.join(e.cmd)
+                            failed_job_output = e.output.decode()
+                            with open(os.path.join(failures_dir, f'{num_failed_jobs}.log'), 'w') as f:
+                                print(job_cmd, end='\n\n', file=f)
+                                print(failed_job_output, file=f)
+                            progress.update(failed=True)
 
     cluster_resolver = ClassResolver.from_subclasses(JobQueueCluster, suffix='Cluster')
 
