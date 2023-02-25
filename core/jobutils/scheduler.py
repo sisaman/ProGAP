@@ -43,7 +43,7 @@ class JobScheduler:
         """
 
         total = len(self.job_list)
-        batch_size = 160  # max number of gpus in the cluster
+        batch_size = 1000
         progress = SchedulerProgress(total=total, console=console)
 
         num_failed_jobs = 0
@@ -57,7 +57,7 @@ class JobScheduler:
         )
         
         with cluster:   
-            cluster.adapt(minimum=min(batch_size, total))
+            cluster.adapt(minimum=min(160, total))  # 160 is the max number of gpus on the cluster
             
             with Client(cluster) as client:
                 with progress:
