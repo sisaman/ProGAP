@@ -63,6 +63,7 @@ class JobScheduler:
                     futures = client.map(
                         lambda cmd: subprocess.run(args=cmd.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT),
                         self.job_list,
+                        pure=False,
                     )
                     for future in as_completed(futures, with_results=False):
                         try:
