@@ -1,6 +1,7 @@
 import os
 import ssl
 import torch
+import random
 import pandas as pd
 from scipy.io import loadmat
 from sklearn.preprocessing import LabelEncoder
@@ -132,10 +133,16 @@ class Facebook100(InMemoryDataset):
         features = pd.DataFrame()
         edge_index = torch.tensor([], dtype=torch.long)
 
-        for raw_file_name in self.raw_file_names:
+        for i, raw_file_name in enumerate(self.raw_file_names):
             mat = loadmat(os.path.join(self.raw_dir, raw_file_name))
             mat_features = pd.DataFrame(mat['local_info'][:, :-1], columns=self.targets)
             mat_edge_index = from_scipy_sparse_matrix(mat['A'])[0] + len(features)
+            if i < 75:
+                mat_features['split'] = 'train'
+            elif i < 85:
+                mat_features['split'] = 'val'
+            else:
+                mat_features['split'] = 'test'
             features = pd.concat([features, mat_features], ignore_index=True)
             edge_index = torch.cat([edge_index, mat_edge_index], dim=1)
 
@@ -143,16 +150,23 @@ class Facebook100(InMemoryDataset):
         if 0 in features[self.target].values:
             y = y - 1
 
-        x = features.drop(columns=[self.target, 'minor', 'housing']).replace({0: None})
+        x = features.drop(columns=[self.target, 'minor', 'housing', 'split']).replace({0: None})
         x = torch.tensor(pd.get_dummies(x).values, dtype=torch.float)
+
+        train_mask = torch.from_numpy((features['split'] == 'train').values)
+        val_mask = torch.from_numpy((features['split'] == 'val').values)
+        test_mask = torch.from_numpy((features['split'] == 'test').values)
 
         # removed unlabled nodes
         subset = y >= 0
         edge_index, _ = subgraph(subset, edge_index, relabel_nodes=True, num_nodes=len(y))
         x = x[subset]
         y = y[subset]
+        train_mask = train_mask[subset]
+        val_mask = val_mask[subset]
+        test_mask = test_mask[subset]
 
-        data = Data(x=x, edge_index=edge_index, y=y)
+        data = Data(x=x, edge_index=edge_index, y=y, train_mask=train_mask, val_mask=val_mask, test_mask=test_mask)
 
         if self.pre_transform is not None:
             data = self.pre_transform(data)
