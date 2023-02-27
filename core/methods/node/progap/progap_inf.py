@@ -31,25 +31,25 @@ class ProGAP (NodeClassification):
 
         super().__init__(num_classes, **kwargs)
 
-        self.modules = [
-            ProgressiveModule(
-                num_classes=num_classes,
-                hidden_dim=hidden_dim,
-                encoder_layers=encoder_layers,
-                head_layers=head_layers,
-                normalize=True,
-                jk_mode=None if i == 0 else jk,
-                activation_fn=activation_resolver.make(activation),
-                dropout=dropout,
-                batch_norm=batch_norm,
-            ) for i in range(stages)
-        ]
+        self.stages = stages
+
+        self.model = ProgressiveModule(
+            num_classes=num_classes,
+            num_phases=stages,
+            hidden_dim=hidden_dim,
+            encoder_layers=encoder_layers,
+            head_layers=head_layers,
+            normalize=True,
+            jk_mode=jk,
+            activation_fn=activation_resolver.make(activation),
+            dropout=dropout,
+            batch_norm=batch_norm,
+        )
 
         self.nap = NAP(noise_std=0, sensitivity=1)
 
     def reset_parameters(self):
-        for module in self.modules:
-            module.reset_parameters()
+        self.model.reset_parameters()
         self.trainer.reset()
         self.data = None
 
@@ -78,30 +78,32 @@ class ProGAP (NodeClassification):
             data = data.to(self.device, non_blocking=True)
             self.pipeline(data, train=False)
         
-        return self.modules[-1].predict(data)
+        return self.model.predict(data)
 
     def _train(self, data: Data, prefix: str = '') -> Metrics:
         return self.pipeline(data, train=True, prefix=prefix)
 
     def pipeline(self, data: Data, train: bool=False, prefix: str = '') -> Optional[Metrics]:
-        n = len(self.modules)
-        xs = torch.empty(0, device=self.device)
+        n = self.stages
+        data.x0 = data.x
+        self.model.set_phase(0)
         
         for i in range(n):
             if i > 0:
-                x, _ = self.modules[i - 1].predict(data)
-                xs = torch.cat([xs, x.unsqueeze(-1)], dim=-1)
-                data.x = self.nap(x, data.adj_t)
-                data.xs = xs
+                x, _ = self.model.predict(data)
+                x = self.nap(x, data.adj_t)
+                data[f'x{i}'] = x
+            
+            self.model.set_phase(i)
 
             if train:
                 console.info(f'Fitting stage {i+1} of {n}')
                 self.trainer.reset()
-                module = self.modules[i].to(self.device)
+                self.model.to(self.device)
                 metrics = self.trainer.fit(
-                    model=module,
+                    model=self.model,
                     epochs=self.epochs,
-                    optimizer=self.configure_optimizer(module),
+                    optimizer=self.configure_optimizer(self.model),
                     train_dataloader=self.data_loader(data, 'train'), 
                     val_dataloader=self.data_loader(data, 'val'),
                     test_dataloader=self.data_loader(data, 'test') if globals['debug'] else None,
