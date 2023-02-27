@@ -54,6 +54,8 @@ class JobScheduler:
             job_name=f'dask-{self.name}',
             log_directory=os.path.join(self.job_dir, 'logs'),
         )
+
+        console.info(f'dashboard at {cluster.dashboard_link}')
         
         with cluster:   
             cluster.adapt(minimum=min(160, total))  # 160 is the max number of gpus on the cluster
