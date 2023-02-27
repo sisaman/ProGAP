@@ -1,8 +1,8 @@
-from typing import Callable, Optional
+from typing import Callable, Iterator, Optional
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-from core.nn import MLP, JumpingKnowledge, ModuleList
+from core.nn import MLP, JumpingKnowledge, ModuleList, Parameter
 from torch_geometric.data import Data
 from core.modules.base import Metrics, Stage, TrainableModule
 
@@ -48,36 +48,30 @@ class ProgressiveModule(TrainableModule):
             ) for _ in range(num_phases)
         )
 
-        self.jk = JumpingKnowledge(
-            mode=jk_mode, 
-            hidden_dim=hidden_dim, 
-            channels=hidden_dim,
-            num_layers=2, 
-            num_heads=2
+        self.jks = ModuleList(
+            JumpingKnowledge(
+                mode=jk_mode,
+                hidden_dim=hidden_dim,
+                channels=hidden_dim,
+                num_layers=2,
+                num_heads=2
+            ) for _ in range(num_phases)
         )
 
-        self.head = MLP(
-            hidden_dim=hidden_dim,
-            output_dim=num_classes,
-            num_layers=head_layers,
-            dropout=dropout,
-            activation_fn=activation_fn,
-            batch_norm=batch_norm,
-            plain_last=True,
+        self.heads = ModuleList(
+            MLP(
+                hidden_dim=hidden_dim,
+                output_dim=num_classes,
+                num_layers=head_layers,
+                dropout=dropout,
+                activation_fn=activation_fn,
+                batch_norm=batch_norm,
+                plain_last=True,
+            ) for _ in range(num_phases)
         )
 
     def set_phase(self, phase: int):
         self.current_phase = phase
-        self.jk.reset_parameters()
-        self.head = MLP(
-            hidden_dim=self.hidden_dim,
-            output_dim=self.num_classes,
-            num_layers=self.head_layers,
-            dropout=self.dropout,
-            activation_fn=self.activation_fn,
-            batch_norm=self.batch_norm,
-            plain_last=True,
-        )
 
     def forward(self, xs: list[Tensor]) -> tuple[Tensor, Tensor]:
         """forward propagation
@@ -93,12 +87,12 @@ class ProgressiveModule(TrainableModule):
             xs[i] = self.encoders[i](xs[i])
         
         h = xs[-1]
-        x = self.jk(torch.stack(xs, dim=-1))
+        x = self.jks[self.current_phase](torch.stack(xs, dim=-1))
 
         if self.normalize:
             x = F.normalize(x, p=2, dim=-1)
-            
-        y = self.head(x)
+        
+        y = self.heads[self.current_phase](x)
         return h, y
 
     def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
@@ -127,5 +121,14 @@ class ProgressiveModule(TrainableModule):
     def reset_parameters(self):
         for encoder in self.encoders:
             encoder.reset_parameters()
-        self.jk.reset_parameters()
-        self.head.reset_parameters()
+        for jk in self.jks:
+            jk.reset_parameters()
+        for head in self.heads:
+            head.reset_parameters()
+
+    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+        for i in range(self.current_phase + 1):
+            yield from self.encoders[i].parameters(recurse=recurse)
+        yield from self.jks[self.current_phase].parameters(recurse=recurse)
+        yield from self.heads[self.current_phase].parameters(recurse=recurse)
+        

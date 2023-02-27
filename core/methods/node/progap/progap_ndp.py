@@ -47,15 +47,14 @@ class NodePrivProGAP (ProGAP):
         self.max_grad_norm = max_grad_norm
         self.num_train_nodes = None  # will be used to set delta if it is 'auto'
 
-        self.modules = [ModuleValidator.fix(module) for module in self.modules]
-        for module in self.modules:
-            ModuleValidator.validate(module, strict=True)
+        self.model = ModuleValidator.fix(self.model)
+        ModuleValidator.validate(self.model, strict=True)    
 
         # Noise std of NAP is set to 0, and will be calibrated later
         self.nap = NAP(noise_std=0, sensitivity=np.sqrt(max_degree))
 
     def calibrate(self):
-        n = len(self.modules)
+        n = self.stages
 
         self.noisy_sgd = NoisySGD(
             noise_scale=0.0, 
@@ -82,8 +81,9 @@ class NodePrivProGAP (ProGAP):
             self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-        for module in self.modules:
-            self.noisy_sgd.prepare_module(module)
+        
+    def on_train_start(self):
+        self.noisy_sgd.prepare_module(self.model)
 
     def fit(self, data: Data, prefix: str = '') -> Metrics:
         num_train_nodes = data.train_mask.sum().item()

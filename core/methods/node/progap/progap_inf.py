@@ -98,6 +98,7 @@ class ProGAP (NodeClassification):
 
             if train:
                 console.info(f'Fitting stage {i+1} of {n}')
+                self.on_train_start()
                 self.trainer.reset()
                 self.model.to(self.device)
                 metrics = self.trainer.fit(
@@ -112,6 +113,9 @@ class ProGAP (NodeClassification):
                 )
 
         return metrics if train else None
+    
+    def on_train_start(self):
+        pass
 
     def configure_optimizer(self, module: TrainableModule) -> Optimizer:
         Optim = {'sgd': SGD, 'adam': Adam}[self.optimizer_name]
