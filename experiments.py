@@ -227,7 +227,7 @@ def generate(path: str):
     Args:
         path (str): Path to store job file.
     """
-    with open('wandb.yaml') as f:
+    with open('config/wandb.yaml') as f:
         wandb_config = yaml.safe_load(f)
 
     registry_train = WandBJobRegistry(
@@ -262,7 +262,16 @@ def run(job_file: str, scheduler_name: str) -> None:
         job_file (str): Path to the job file.
         scheduler_name (str): Name of the scheduler to use.
     """
-    scheduler = JobScheduler(job_file=job_file, scheduler=scheduler_name)
+
+    with open('../config/dask.yaml') as f:
+        config = yaml.safe_load(f)
+
+    scheduler = JobScheduler(
+        job_file=job_file, 
+        scheduler=scheduler_name, 
+        config=config
+    )
+    
     try:
         scheduler.submit()
     except KeyboardInterrupt:

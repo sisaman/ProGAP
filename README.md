@@ -28,7 +28,7 @@ Refer to [requiresments.txt](./requirements.txt) to see the full list of depende
 ### Replicating the paper's results
 To reproduce the paper's results, please follow the below steps:  
 
-1. Set your WandB username in [wandb.yaml](./wandb.yaml) (line 7). This is required to log the results to your WandB account.
+1. Set your WandB username in [config/wandb.yaml](config/wandb.yaml) (line 7). This is required to log the results to your WandB account.
 
 2. Execute the following python script:
     ```
