@@ -263,7 +263,7 @@ def run(job_file: str, scheduler_name: str) -> None:
         scheduler_name (str): Name of the scheduler to use.
     """
 
-    with open('../config/dask.yaml') as f:
+    with open('config/dask.yaml') as f:
         config = yaml.safe_load(f)
 
     scheduler = JobScheduler(
