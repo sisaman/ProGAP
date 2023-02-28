@@ -23,7 +23,7 @@ class JobScheduler:
             'lsf', 'moab', 'oar', 'pbs', 'sge', 'slurm'. Defaults to 'sge'.
     """
     def __init__(self, job_file: str, scheduler: str = 'sge', config: dict = None):
-        assert scheduler in self.cluster_resolver.options, f'Invalid scheduler: {scheduler}'
+        assert scheduler in cluster_resolver.options, f'Invalid scheduler: {scheduler}'
         self.scheduler = scheduler
         self.file = job_file
         path = os.path.realpath(self.file)
@@ -51,7 +51,7 @@ class JobScheduler:
         failures_dir = os.path.join(self.job_dir, 'failures')
         os.makedirs(failures_dir, exist_ok=True)
 
-        cluster: JobQueueCluster = self.cluster_resolver.make(
+        cluster: JobQueueCluster = cluster_resolver.make(
             self.scheduler,
             job_name=f'dask-{self.name}',
             log_directory=os.path.join(self.job_dir, 'logs'),
