@@ -31,7 +31,9 @@ class JobScheduler:
         self.job_dir = os.path.join(os.path.dirname(path), self.name)
 
         if config:
-            dask.config.set(config)
+            dask_config = dask.config.config
+            updated_config = dask.config.merge(dask_config, config)
+            dask.config.set(updated_config)
 
         with open(self.file) as jobs_file:
             self.job_list = jobs_file.read().splitlines()
