@@ -10,10 +10,12 @@ from subprocess import CalledProcessError
 from class_resolver import ClassResolver
 from core import console, Console
 
+
 dask.config.set({"jobqueue.sge.walltime": None})
 dask.config.set({"distributed.worker.memory.target": False})    # Avoid spilling to disk
 dask.config.set({"distributed.worker.memory.spill": False})     # Avoid spilling to disk
-dask.config.set({'distributed.scheduler.allowed-failures': 99}) # Allow workers to fail
+dask.config.set({'distributed.scheduler.work-stealing': False})
+dask.config.set({'distributed.scheduler.allowed-failures': 2})
 
 
 class JobScheduler:
