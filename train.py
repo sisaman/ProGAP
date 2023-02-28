@@ -57,6 +57,8 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
 
         ### process results ###
         for metric, value in metrics.items():
+            if torch.is_tensor(value):
+                value = value.item()
             run_metrics[metric] = run_metrics.get(metric, []) + [value]
 
          ### print results ###

@@ -14,6 +14,7 @@ class TrainerProgress(Progress):
                  num_train_steps: int, 
                  num_val_steps: int, 
                  num_test_steps: int,
+                 **kwargs
                  ):
 
         progress_bar = [
@@ -27,7 +28,7 @@ class TrainerProgress(Progress):
             # "{task.fields[metrics]}"
         ]
 
-        super().__init__(*progress_bar, console=console)
+        super().__init__(*progress_bar, console=console, **kwargs)
 
         self.trainer_tasks = {
             'epoch': self.add_task(total=num_epochs, metrics='', unit='epochs', description='overal progress'),

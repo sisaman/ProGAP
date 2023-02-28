@@ -16,6 +16,7 @@ class Trainer:
                  monitor:       str = 'val/acc',
                  monitor_mode:  Literal['min', 'max'] = 'max',
                  val_interval:  Annotated[int, ArgInfo(help='interval of validation')] = 1,
+                 verbose:       Annotated[bool, ArgInfo(help='display progress')] = False,
                  ):
 
         assert monitor_mode in ['min', 'max']
@@ -24,6 +25,7 @@ class Trainer:
         self.val_interval = val_interval
         self.monitor = monitor
         self.monitor_mode = monitor_mode
+        self.verbose = verbose
         
         # trainer internal state
         self.model: TrainableModule = None
@@ -49,8 +51,6 @@ class Trainer:
             if stage in metric_name.split('/'):
                 value = metric_value.compute()
                 metric_value.reset()
-                if torch.is_tensor(value):
-                    value = value.item()
                 metrics[metric_name] = value
 
         return metrics
@@ -92,6 +92,7 @@ class Trainer:
             num_train_steps=len(train_dataloader), 
             num_val_steps=len(val_dataloader), 
             num_test_steps=len(test_dataloader),
+            disable=not self.verbose,
         )
         
         with self.progress:
