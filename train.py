@@ -80,6 +80,9 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
         summary[metric + '_mean'] = np.mean(values)
         summary[metric + '_std'] = np.std(values)
         summary[metric + '_ci'] = confidence_interval(values, size=1000, ci=95, seed=seed)
+        if torch.cuda.is_available():
+            gpu_mem = torch.cuda.max_memory_allocated() / 1024 ** 3
+            summary['gpu_mem'] = gpu_mem
         logger.log_summary(summary)
 
 
