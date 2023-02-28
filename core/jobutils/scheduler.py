@@ -11,11 +11,7 @@ from class_resolver import ClassResolver
 from core import console, Console
 
 
-dask.config.set({"jobqueue.sge.walltime": None})
-dask.config.set({"distributed.worker.memory.target": False})    # Avoid spilling to disk
-dask.config.set({"distributed.worker.memory.spill": False})     # Avoid spilling to disk
-# dask.config.set({'distributed.scheduler.work-stealing': False})
-# dask.config.set({'distributed.scheduler.allowed-failures': 2})
+cluster_resolver = ClassResolver.from_subclasses(JobQueueCluster, suffix='Cluster')
 
 
 class JobScheduler:
@@ -26,13 +22,16 @@ class JobScheduler:
         scheduler (str, optional): The scheduler to use. Options are 'htcondor', 
             'lsf', 'moab', 'oar', 'pbs', 'sge', 'slurm'. Defaults to 'sge'.
     """
-    def __init__(self, job_file: str, scheduler: str = 'sge'):
+    def __init__(self, job_file: str, scheduler: str = 'sge', config: dict = None):
         assert scheduler in self.cluster_resolver.options, f'Invalid scheduler: {scheduler}'
         self.scheduler = scheduler
         self.file = job_file
         path = os.path.realpath(self.file)
         self.name = Path(path).stem
         self.job_dir = os.path.join(os.path.dirname(path), self.name)
+
+        if config:
+            dask.config.set(config)
 
         with open(self.file) as jobs_file:
             self.job_list = jobs_file.read().splitlines()
@@ -44,6 +43,7 @@ class JobScheduler:
             list[str]: The list of failed job commands.
         """
 
+        max_gpus = 160
         total = len(self.job_list)
         progress = SchedulerProgress(total=total, console=console)
 
@@ -66,9 +66,10 @@ class JobScheduler:
                 with progress:
                     futures = client.map(
                         lambda cmd: subprocess.run(args=cmd.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT),
-                        self.job_list,
+                        self.job_list[:max_gpus],
                         pure=False,
                     )
+                    submitted = min(max_gpus, total)
                     for future in as_completed(futures, with_results=False):
                         try:
                             future.result()
@@ -81,9 +82,13 @@ class JobScheduler:
                                 print(job_cmd, end='\n\n', file=f)
                                 print(failed_job_output, file=f)
                             progress.update(failed=True)
-
-    cluster_resolver = ClassResolver.from_subclasses(JobQueueCluster, suffix='Cluster')
-
+                        if submitted < total:
+                            future = client.submit(
+                                lambda cmd: subprocess.run(args=cmd.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT),
+                                self.job_list[submitted],
+                                pure=False,
+                            )
+                            submitted += 1
 
 
 class SchedulerProgress:

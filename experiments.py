@@ -2,7 +2,7 @@ import yaml
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from core import console
 from core.jobutils.registry import WandBJobRegistry
-from core.jobutils.scheduler import JobScheduler
+from core.jobutils.scheduler import JobScheduler, cluster_resolver
 
 
 def create_train_commands(registry: WandBJobRegistry) -> list[str]:
@@ -285,7 +285,7 @@ def main() -> None:
     parser.add_argument('--run', action='store_true', help='Run jobs')
     parser.add_argument('--path', type=str, default='jobs/experiments.sh', help='Path to the job file')
     parser.add_argument('--scheduler', type=str, default='sge', help='Job scheduler to use', 
-                        choices=JobScheduler.cluster_resolver.options)
+                        choices=cluster_resolver.options)
     args = parser.parse_args()
 
     if args.generate:
