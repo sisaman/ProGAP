@@ -72,7 +72,8 @@ class JobScheduler:
                         pure=False,
                     )
                     submitted = min(max_gpus, total)
-                    for future in as_completed(futures, with_results=False):
+                    futures = as_completed(futures, with_results=False)
+                    for future in futures:
                         try:
                             future.result()
                             progress.update(failed=False)
@@ -90,6 +91,7 @@ class JobScheduler:
                                 self.job_list[submitted],
                                 pure=False,
                             )
+                            futures.add(future)
                             submitted += 1
 
 
