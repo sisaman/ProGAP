@@ -3,6 +3,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from core import console
 from core.jobutils.registry import WandBJobRegistry
 from core.jobutils.scheduler import JobScheduler, cluster_resolver
+from rich.progress import Progress
 
 
 def create_train_commands(registry: WandBJobRegistry) -> list[str]:
@@ -77,146 +78,32 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                 hparams[dataset][method]['epochs'] = 100
                 hparams[dataset][method]['batch_size'] = 'full'
 
-    # ### Accuracy/Privacy Trade-off
-    for dataset in datasets:
-        for method in all_methods:
-            params = {}
-            if method in ndp_methods:
-                params['epsilon'] = [2, 4, 8, 16, 32]
-            elif method in set(edp_methods) - {'mlp'}:
-                params['epsilon'] = [0.25, 0.5, 1, 2, 4]
-                
-            registry.register(
-                'train.py',
-                method, 
-                dataset=dataset,
-                **params, 
-                **hparams[dataset][method]
-            )
+    progress = Progress(
+        *Progress.get_default_columns(),
+        "[cyan]{task.fields[registered]}[/cyan] jobs registered",
+        console=console,
+    )
+    task = progress.add_task('generating jobs', total=None, registered=0)
 
-    # # ### Effect of Encoder
-    # for dataset in datasets:
-    #     for method in ['gap-edp', 'gap-ndp']:
-    #         hp = {**hparams[dataset][method]}
-    #         default_encoder_layers = hp.pop('encoder_layers')
-    #         epsilon = [0.5, 1, 2, 4, 8] if method == 'gap-edp' else [1, 2, 4, 8, 16]
-    #         registry.register(
-    #             'train.py',
-    #             method,
-    #             dataset=dataset,
-    #             encoder_layers=[0, default_encoder_layers],
-    #             epsilon=epsilon,
-    #             **hp
-    #         )
+    with progress:
+        # ### Accuracy/Privacy Trade-off
+        for dataset in datasets:
+            for method in all_methods:
+                params = {}
+                if method in ndp_methods:
+                    params['epsilon'] = [2, 4, 8, 16, 32]
+                elif method in set(edp_methods) - {'mlp'}:
+                    params['epsilon'] = [0.25, 0.5, 1, 2, 4]
+                    
+                registry.register(
+                    'train.py',
+                    method, 
+                    dataset=dataset,
+                    **params, 
+                    **hparams[dataset][method]
+                )
 
-    # # ### Effect of Stages
-    # for dataset in datasets:
-    #     for method in ['progap-edp', 'progap-ndp']:
-    #         hp = {**hparams[dataset][method]}
-    #         hp.pop('stages')
-    #         stages = [2, 3, 4, 5, 6]
-    #         epsilon = [1, 2, 4, 8] if method == 'progap-edp' else [2, 4, 8, 16]
-    #         registry.register(
-    #             'train.py',
-    #             method,
-    #             dataset=dataset,
-    #             stages=stages,
-    #             epsilon=epsilon,
-    #             **hp
-    #         )
-
-    # # ### Effect of Degree
-    # for dataset in datasets:
-    #     method = 'progap-ndp'
-    #     hp = {**hparams[dataset][method]}
-    #     hp.pop('max_degree')
-    #     max_degree = [10,20,50,100,200,300,400]
-    #     epsilon = [2, 4, 8, 16]
-    #     registry.register(
-    #         'train.py',
-    #         method,
-    #         dataset=dataset,
-    #         max_degree=max_degree,
-    #         epsilon=epsilon,
-    #         **hp
-    #     )
-
-    return registry.job_list
-    
-
-def create_attack_commands(registry: WandBJobRegistry) -> list[str]:
-    # Hyperparameters
-    datasets = ['facebook', 'reddit', 'amazon']
-    gap_methods  = ['gap-inf', 'gap-ndp']
-    sage_methods = ['sage-inf', 'sage-ndp']
-    mlp_methods  = ['mlp', 'mlp-dp']
-    ndp_methods  = ['gap-ndp', 'sage-ndp', 'mlp-dp']
-    all_methods  = gap_methods + sage_methods + mlp_methods
-    hparams = {dataset: {method: {} for method in all_methods} for dataset in datasets}
-
-    for dataset in datasets:
-        # For GAP methods
-        for method in gap_methods:
-            hparams[dataset][method]['shadow_encoder_layers'] = 2
-            hparams[dataset][method]['shadow_base_layers'] = 1
-            hparams[dataset][method]['shadow_head_layers'] = 1
-            hparams[dataset][method]['shadow_combine'] = 'cat'
-            hparams[dataset][method]['shadow_hops'] = 2
-        # For SAGE methods
-        for method in sage_methods:
-            hparams[dataset][method]['shadow_base_layers'] = 2
-            hparams[dataset][method]['shadow_head_layers'] = 1
-            if method != 'sage-ndp':
-                hparams[dataset][method]['shadow_mp_layers'] = 2
-        # For MLP methods
-        for method in mlp_methods:
-            hparams[dataset][method]['shadow_num_layers'] = 3
-        # For GAP-NDP and SAGE-NDP
-        for method in ['gap-ndp', 'sage-ndp']:
-            hparams[dataset][method]['shadow_max_degree'] = 100
-        # For all methods
-        for method in all_methods:
-            hparams[dataset][method]['shadow_hidden_dim'] = 64
-            hparams[dataset][method]['shadow_activation'] = 'selu'
-            hparams[dataset][method]['shadow_optimizer'] = 'adam'
-            hparams[dataset][method]['shadow_learning_rate'] = 0.01
-            if method in ndp_methods:
-                hparams[dataset][method]['shadow_max_grad_norm'] = 1
-                hparams[dataset][method]['shadow_epochs'] = 10
-                hparams[dataset][method]['shadow_batch_size'] = 256
-            else:
-                hparams[dataset][method]['shadow_batch_norm'] = True
-                hparams[dataset][method]['shadow_epochs'] = 100
-                hparams[dataset][method]['shadow_batch_size'] = 'full'
-            if method != 'sage-ndp':
-                hparams[dataset][method]['shadow_val_interval'] = 0
-
-            hparams[dataset][method]['num_nodes_per_class'] = 1000
-            hparams[dataset][method]['attack_hidden_dim'] = 64
-            hparams[dataset][method]['attack_num_layers'] = 3
-            hparams[dataset][method]['attack_activation'] = 'selu'
-            hparams[dataset][method]['attack_batch_norm'] = True
-            hparams[dataset][method]['attack_batch_size'] = 'full'
-            hparams[dataset][method]['attack_epochs'] = 100
-            hparams[dataset][method]['attack_optimizer'] = 'adam'
-            hparams[dataset][method]['attack_learning_rate'] = 0.01
-            hparams[dataset][method]['attack_val_interval'] = 1
-            hparams[dataset][method]['repeats'] = 10
-
-    for dataset in datasets:
-        for method in all_methods:
-            params = {}
-            if method in ndp_methods:
-                params['shadow_epsilon'] = [1, 2, 4, 8, 16]
-            
-            registry.register(
-                'attack.py',
-                method, 
-                'nmi',
-                dataset=dataset,
-                **params, 
-                **hparams[dataset][method]
-            )
+                progress.update(task, registered=len(registry.job_list))
 
     return registry.job_list
 
@@ -230,29 +117,19 @@ def generate(path: str):
     with open('config/wandb.yaml') as f:
         wandb_config = yaml.safe_load(f)
 
-    registry_train = WandBJobRegistry(
+    registry = WandBJobRegistry(
         entity=wandb_config['username'], 
         project=wandb_config['project']['train']
     )
 
-    # registry_attack = WandBJobRegistry(
-    #     entity=wandb_config['username'], 
-    #     project=wandb_config['project']['attack']
-    # )
+    # with console.status('pulling jobs from WandB'):
+    registry.pull()
 
-    with console.status('pulling jobs from WandB'):
-        registry_train.pull()
-        # registry_attack.pull()
-
-    with console.status('generating job commands'):
-        train_commands = create_train_commands(registry_train)
-        # attack_commands = create_attack_commands(registry_attack)
-
-    job_list = train_commands # + attack_commands
-    console.info(f'{len(job_list)} jobs generated')
-    with console.status(f'saving jobs to {path}'):
-        registry_train.job_list = job_list
-        registry_train.save(path=path)
+    # with console.status('generating job commands'):
+    jobs = create_train_commands(registry)
+    
+    registry.save(path=path)
+    console.info(f'job file saved to [bold blue]{path}[/bold blue]')
 
 
 def run(job_file: str, scheduler_name: str) -> None:

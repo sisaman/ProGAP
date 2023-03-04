@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from itertools import product
 from core import console
+from rich.progress import track
 
 
 class WandBJobRegistry:
@@ -17,7 +18,7 @@ class WandBJobRegistry:
         self.entity = entity
         self.project = project
         self.job_list = []
-        self.df_jobs = pd.DataFrame()
+        self.df_stored_jobs = pd.DataFrame()
 
     def pull(self):
         """Pull all runs from WandB"""
@@ -27,12 +28,14 @@ class WandBJobRegistry:
         if self.project in projects:
             runs = api.runs(f"{self.entity}/{self.project}", per_page=2000)
             config_list = []
-            for run in runs:
+            for run in track(runs, description='pulling jobs from wandb server', console=console):
                 config_list.append({k: v for k,v in run.config.items() if not k.startswith('_')})
 
-            self.df_jobs = pd.DataFrame.from_dict(config_list)
-            if 'epsilon' in self.df_jobs.columns:
-                self.df_jobs['epsilon'] = self.df_jobs['epsilon'].astype(float)
+            self.df_stored_jobs = pd.DataFrame.from_dict(config_list)
+            if 'epsilon' in self.df_stored_jobs.columns:
+                self.df_stored_jobs['epsilon'] = self.df_stored_jobs['epsilon'].astype(float)
+            
+            self.df_stored_jobs.drop_duplicates(inplace=True)
     
     def register(self, main_file, method, attack=None, **params) -> list[str]:
         """Register jobs to the registry.
@@ -42,33 +45,47 @@ class WandBJobRegistry:
 
         Args:
             main_file (str): Path to the main executable python file.
-            *args (list): List of arguments to pass to the main file.
+            method (str): Name of the method to run.
+            attack (str, optional): Name of the attack to run. Defaults to None.
             **params (dict): Dictionary of parameters to sweep over.
 
         Returns:
             list[str]: List of jobs to run.
         """
+
+        # convert all values to tuples
         for key, value in params.items():
             if not (isinstance(value, list) or isinstance(value, tuple)):
                 params[key] = (value,)
         
+        # rule out already existing jobs
+        param_keys = list(params.keys())
+        param_values = list(product(*params.values()))
+        df_new_configs = pd.DataFrame(param_values, columns=param_keys)
+        df_new_configs['method'] = method
+        if attack is not None:
+            df_new_configs['attack'] = attack
+
+        if self.df_stored_jobs.empty or (set(param_keys) - set(self.df_stored_jobs.columns)):
+            df_out_configs = df_new_configs
+        else:
+            df_out_configs = df_new_configs.merge(self.df_stored_jobs, how='left', indicator=True)
+            df_out_configs = df_out_configs[df_out_configs['_merge'] == 'left_only']
+            df_out_configs = df_out_configs[df_new_configs.columns]
+
+        # generate job commands
         jobs = []
-        configs = self._product_dict(params)
-
+        configs = df_out_configs.to_dict('records')
         for config in configs:
-            extended_config = {**config, 'method': method}
-            if attack is not None:
-                extended_config['attack'] = attack
-
-            if not self._exists(extended_config):
-                args = f" {method} {attack if attack is not None else ''} "
-                options = ' '.join([f' --{param} {value} ' for param, value in config.items()])
-                command = f'python {main_file} {args} {options} --logger wandb --project {self.project}'
-                command = ' '.join(command.split())
-                jobs.append(command)
+            config.pop('method', None)
+            config.pop('attack', None)
+            args = f" {method} {attack if attack is not None else ''} "
+            options = ' '.join([f' --{param} {value} ' for param, value in config.items()])
+            command = f'python {main_file} {args} {options} --logger wandb --project {self.project}'
+            command = ' '.join(command.split())
+            jobs.append(command)
 
         self.job_list += jobs
-        console.info(f'{len(self.job_list)} jobs registered')
         return jobs
 
     def save(self, path: str, sort=False, shuffle=False):
@@ -96,35 +113,3 @@ class WandBJobRegistry:
         with open(path, 'w') as file:
             for item in jobs:
                 print(item, file=file)
-
-    def _exists(self, config: dict) -> bool:
-        """Check if a run with the given config exists in the registry.
-
-        Args:
-            config (dict): Configuration dictionary.
-
-        Returns:
-            bool: True if the run exists, False otherwise.
-        """
-        if set(config.keys()) - set(self.df_jobs.columns):
-            # if config has a key not in df_jobs, return an empty df
-            return False
-        else:
-            # find rows in df_jobs corresponding to runs that match config
-            return np.all([self.df_jobs[k] == v for k, v in config.items()], axis=0).any()
-
-    def _product_dict(self, params: dict) -> list[dict]:
-        """Generate all possible combinations of the parameters.
-            
-        Args:
-            params (dict): Dictionary of parameters to sweep over.
-
-        Yields:
-            dict: Dictionary of individual parameters.
-        """
-        configs = []
-        keys = params.keys()
-        vals = params.values()
-        for instance in product(*vals):
-            configs.append(dict(zip(keys, instance)))
-        return configs
