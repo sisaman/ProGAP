@@ -82,7 +82,8 @@ class NodePrivProGAP (ProGAP):
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
         
-    def on_train_start(self):
+    def set_phase(self, phase: int) -> None:
+        super().set_phase(phase)
         self.noisy_sgd.prepare_module(self.model)
 
     def fit(self, data: Data, prefix: str = '') -> Metrics:

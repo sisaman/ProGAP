@@ -26,6 +26,7 @@ class ProGAP (NodeClassification):
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
+                 layerwise:       Annotated[bool,  ArgInfo(help='if true, then model uses layerwise training')] = False,
                  **kwargs:        Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
                  ):
 
@@ -44,6 +45,7 @@ class ProGAP (NodeClassification):
             activation_fn=activation_resolver.make(activation),
             dropout=dropout,
             batch_norm=batch_norm,
+            layerwise=layerwise,
         )
 
         self.nap = NAP(noise_std=0, sensitivity=1)
@@ -94,11 +96,10 @@ class ProGAP (NodeClassification):
                 x = self.nap(x, data.adj_t)
                 data[f'x{i}'] = x
             
-            self.model.set_phase(i)
+            self.set_phase(i)
 
             if train:
                 console.info(f'Fitting stage {i+1} of {n}')
-                self.on_train_start()
                 self.trainer.reset()
                 self.model.to(self.device)
                 metrics = self.trainer.fit(
@@ -114,9 +115,9 @@ class ProGAP (NodeClassification):
 
         return metrics if train else None
     
-    def on_train_start(self):
-        pass
-
+    def set_phase(self, phase: int) -> None:
+        self.model.set_phase(phase)
+    
     def configure_optimizer(self, module: TrainableModule) -> Optimizer:
         Optim = {'sgd': SGD, 'adam': Adam}[self.optimizer_name]
         return Optim(module.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)

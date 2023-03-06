@@ -19,6 +19,7 @@ class ProgressiveModule(TrainableModule):
                  dropout: float = 0.0, 
                  activation_fn: Callable[[Tensor], Tensor] = torch.relu_, 
                  batch_norm: bool = True,
+                 layerwise: bool = False,
                  ):
 
         super().__init__()
@@ -33,6 +34,7 @@ class ProgressiveModule(TrainableModule):
         self.dropout = dropout
         self.activation_fn = activation_fn
         self.batch_norm = batch_norm
+        self.layerwise = layerwise
 
         self.current_phase = 0
 
@@ -77,7 +79,7 @@ class ProgressiveModule(TrainableModule):
         """forward propagation
 
         Args:
-            xs (list[Tensor]): list of node embeddings
+            xs (list[Tensor]): list of aggregate node embeddings
 
         Returns:
             tuple[Tensor, Tensor]: node embeddings, node unnormalized predictions
@@ -127,8 +129,11 @@ class ProgressiveModule(TrainableModule):
             head.reset_parameters()
 
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
-        for i in range(self.current_phase + 1):
-            yield from self.encoders[i].parameters(recurse=recurse)
+        if self.layerwise:
+            yield from self.encoders[self.current_phase].parameters(recurse=recurse)
+        else:
+            for i in range(self.current_phase + 1):
+                yield from self.encoders[i].parameters(recurse=recurse)
         yield from self.jks[self.current_phase].parameters(recurse=recurse)
         yield from self.heads[self.current_phase].parameters(recurse=recurse)
         
