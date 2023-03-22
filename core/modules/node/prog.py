@@ -74,6 +74,15 @@ class ProgressiveModule(TrainableModule):
 
     def set_phase(self, phase: int):
         self.current_phase = phase
+        if self.layerwise:
+            # freeze previous layers
+            for i in range(self.current_phase):
+                for param in self.encoders[i].parameters():
+                    param.requires_grad = False
+                for param in self.jks[i].parameters():
+                    param.requires_grad = False
+                for param in self.heads[i].parameters():
+                    param.requires_grad = False
 
     def forward(self, xs: list[Tensor]) -> tuple[Tensor, Tensor]:
         """forward propagation
@@ -121,19 +130,21 @@ class ProgressiveModule(TrainableModule):
         return x, torch.softmax(y, dim=-1)
         
     def reset_parameters(self):
+        self.current_phase = 0
         for encoder in self.encoders:
             encoder.reset_parameters()
         for jk in self.jks:
             jk.reset_parameters()
         for head in self.heads:
             head.reset_parameters()
+        for param in super().parameters():
+            param.requires_grad = True
 
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
-        if self.layerwise:
-            yield from self.encoders[self.current_phase].parameters(recurse=recurse)
-        else:
-            for i in range(self.current_phase + 1):
+        if not self.layerwise:
+            for i in range(self.current_phase):
                 yield from self.encoders[i].parameters(recurse=recurse)
+        yield from self.encoders[self.current_phase].parameters(recurse=recurse)
         yield from self.jks[self.current_phase].parameters(recurse=recurse)
         yield from self.heads[self.current_phase].parameters(recurse=recurse)
         
