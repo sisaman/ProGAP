@@ -20,6 +20,7 @@ with console.status('importing modules'):
 
 def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
         repeats: Annotated[int,   ArgInfo(help='number of times the experiment is repeated')] = 1,
+        log_all: Annotated[bool,  ArgInfo(help='log all training steps')] = False,
         debug:   Annotated[bool,  ArgInfo(help='enable global debug mode')] = False,
         **kwargs
     ):
@@ -36,9 +37,9 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
         data_initial = DatasetLoader(**loader_args).load(verbose=True)
 
     num_classes = data_initial.y.max().item() + 1
-    config = dict(**kwargs, seed=seed, repeats=repeats)
+    config = dict(**kwargs, seed=seed, repeats=repeats, log_all=log_all)
     logger_args = strip_kwargs(Logger.setup, kwargs)
-    logger = Logger.setup(enabled=False, config=config, **logger_args)
+    logger = Logger.setup(enabled=log_all, config=config, **logger_args)
 
     ### initiallize method ###
     Method = supported_methods[kwargs['method']]
