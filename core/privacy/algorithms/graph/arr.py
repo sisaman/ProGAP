@@ -1,14 +1,15 @@
 import torch
 import numpy as np
-from torch_sparse import SparseTensor
-
+from torch import Tensor
+from torch_geometric.utils import to_torch_coo_tensor
 
 class AsymmetricRandResponse:
     def __init__(self, eps: float):
+        raise NotImplementedError('This class is not adapted to torch.sparse yet.')
         self.eps_link = eps * 0.9
         self.eps_density = eps * 0.1
 
-    def __call__(self, adj_t: SparseTensor, chunk_size: int=1000) -> SparseTensor:
+    def __call__(self, adj_t: Tensor, chunk_size: int=1000) -> Tensor:
         chunks = self.split(adj_t, chunk_size=chunk_size)
         pert_chunks = []
 
@@ -19,7 +20,7 @@ class AsymmetricRandResponse:
         perturbed_adj_t = self.merge(pert_chunks, chunk_size=chunk_size)
         return perturbed_adj_t
     
-    def split(self, adj_t: SparseTensor, chunk_size: int) -> list[SparseTensor]:
+    def split(self, adj_t: Tensor, chunk_size: int) -> list[Tensor]:
         chunks = []
         for i in range(0, adj_t.size(0), chunk_size):
             if (i + chunk_size) <= adj_t.size(0):
@@ -28,7 +29,7 @@ class AsymmetricRandResponse:
                 chunks.append(adj_t[i:])
         return chunks
     
-    def perturb(self, adj_t: SparseTensor) -> SparseTensor:
+    def perturb(self, adj_t: Tensor) -> Tensor:
         n = adj_t.size(1)
         sensitivity = 1 / (n*n)
         p = 1 / (1 + np.exp(-self.eps_link))
@@ -40,13 +41,14 @@ class AsymmetricRandResponse:
         mask = adj_t.to_dense(dtype=bool)
         out = mask * pr_1to1 + (~mask) * pr_0to1
         torch.bernoulli(out, out=out)
-        out = SparseTensor.from_dense(out, has_value=False)
+        out = out.to_sparse()
         return out
     
-    def merge(self, chunks: list[SparseTensor], chunk_size: int) -> SparseTensor:
+    def merge(self, chunks: list[Tensor], chunk_size: int) -> Tensor:
         n = (len(chunks) - 1) * chunk_size + chunks[-1].size(0)
         m = chunks[0].size(1)
         row = torch.cat([chunk.coo()[0] + i * chunk_size for i, chunk in enumerate(chunks)])
         col = torch.cat([chunk.coo()[1] for chunk in chunks])
-        out = SparseTensor(row=row, col=col, sparse_sizes=(n, m))#.coalesce()
+        edge_index = torch.stack([row, col], dim=0)
+        out = to_torch_coo_tensor(edge_index, size=(n,m))
         return out

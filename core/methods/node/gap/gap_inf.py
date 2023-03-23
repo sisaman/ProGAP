@@ -1,9 +1,9 @@
 import torch
+from torch import Tensor
 from typing import Annotated, Optional
 import torch.nn.functional as F
 from torch.optim import Adam, SGD, Optimizer
 from torch_geometric.data import Data
-from torch_sparse import SparseTensor, matmul
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.node.base import NodeClassification
@@ -96,7 +96,7 @@ class GAP (NodeClassification):
 
         return super().test(data, prefix=prefix)
 
-    def predict(self, data: Optional[Data] = None) -> torch.Tensor:
+    def predict(self, data: Optional[Data] = None) -> Tensor:
         if data is None or data == self.data:
             data = self.data
         else:
@@ -105,10 +105,10 @@ class GAP (NodeClassification):
 
         return super().predict(data)
 
-    def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
-        return matmul(adj_t, x)
+    def _aggregate(self, x: Tensor, adj_t: Tensor) -> Tensor:
+        return torch.spmm(adj_t, x)
 
-    def _normalize(self, x: torch.Tensor) -> torch.Tensor:
+    def _normalize(self, x: Tensor) -> Tensor:
         return F.normalize(x, p=2, dim=-1)
 
     def pretrain_encoder(self, data: Data, prefix: str) -> Data:

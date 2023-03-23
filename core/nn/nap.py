@@ -1,7 +1,7 @@
+import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import Module
-from torch_sparse import SparseTensor, matmul
 from core.privacy.mechanisms.commons import GaussianMechanism
 
 
@@ -12,8 +12,8 @@ class NAP(Module):
         noise_scale = noise_std / sensitivity
         self.gm = GaussianMechanism(noise_scale)
 
-    def forward(self, x: Tensor, adj_t: SparseTensor) -> Tensor:
+    def forward(self, x: Tensor, adj_t: Tensor) -> Tensor:
         x = F.normalize(x, p=2, dim=-1)             # normalize
-        x = matmul(adj_t, x)                        # aggregate
+        x = torch.spmm(adj_t, x)                        # aggregate
         x = self.gm.perturb(x, self.sensitivity)    # perturb
         return x

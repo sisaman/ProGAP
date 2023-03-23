@@ -1,8 +1,8 @@
 import numpy as np
 import torch
+from torch import Tensor
 from typing import Annotated, Literal, Union
 from torch_geometric.data import Data
-from torch_sparse import SparseTensor, matmul
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.node import GAP
@@ -45,7 +45,7 @@ class EdgePrivGAP (GAP):
 
         return super().fit(data, prefix=prefix)
 
-    def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
-        x = matmul(adj_t, x)
+    def _aggregate(self, x: Tensor, adj_t: Tensor) -> torch.Tensor:
+        x = torch.spmm(adj_t, x)
         x = self.pma_mechanism(x, sensitivity=1)
         return x

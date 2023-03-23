@@ -1,8 +1,8 @@
 import numpy as np
 import torch
+from torch import Tensor
 from typing import Annotated, Literal, Union
 from torch_geometric.data import Data
-from torch_sparse import SparseTensor, matmul
 from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
@@ -93,8 +93,8 @@ class NodePrivGAP (GAP):
             data = BoundOutDegree(self.max_degree)(data)
         return super().compute_aggregations(data)
 
-    def _aggregate(self, x: torch.Tensor, adj_t: SparseTensor) -> torch.Tensor:
-        x = matmul(adj_t, x)
+    def _aggregate(self, x: Tensor, adj_t: Tensor) -> Tensor:
+        x = torch.spmm(adj_t, x)
         x = self.pma_mechanism(x, sensitivity=np.sqrt(self.max_degree))
         return x
 

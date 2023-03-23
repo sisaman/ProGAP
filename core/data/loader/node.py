@@ -94,7 +94,7 @@ class NodeDataLoader:
                     edge_index=batch_edge_index,
                 )
                 data[f'{self.stage}_mask'] = batch_mask
-                data = ToSparseTensor()(data)
+                data = ToSparseTensor(layout=torch.sparse_csr)(data)
             
             yield data
             

@@ -3,7 +3,6 @@ import torch
 from torch import Tensor
 from torch.nn import Dropout, BatchNorm1d
 from torch_geometric.nn import GraphSAGE
-from torch_sparse import SparseTensor
 
 
 class SAGE(GraphSAGE):
@@ -41,7 +40,7 @@ class SAGE(GraphSAGE):
         if not plain_last and batch_norm:
             self.bn = BatchNorm1d(output_dim)
         
-    def forward(self, x: Tensor, adj_t: SparseTensor) -> Tensor:
+    def forward(self, x: Tensor, adj_t: Tensor) -> Tensor:
         x = super().forward(x, adj_t)
         if not self.plain_last:
             x = self.bn(x) if self.batch_norm else x

@@ -2,7 +2,6 @@ from typing import Callable
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-from torch_sparse import SparseTensor
 from core.nn import MLP
 from torch_geometric.data import Data
 from core.nn.sage import SAGE
@@ -56,7 +55,7 @@ class SAGENodeClassifier(TrainableModule):
             plain_last=True,
         )
 
-    def forward(self, x: Tensor, adj_t: SparseTensor) -> Tensor:
+    def forward(self, x: Tensor, adj_t: Tensor) -> Tensor:
         x = self.base_mlp(x)
         x = F.normalize(x, p=2, dim=-1) if self.normalize else x
         x = self.gnn(x, adj_t)
