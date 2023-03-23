@@ -3,14 +3,12 @@ import torch.utils.cpp_extension
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.data import Data
 from torch_sparse import SparseTensor
-from torch_geometric.loader.utils import filter_data
-from torch_geometric.sampler.utils import to_csc
+from pyg_lib.sampler import neighbor_sample
 
 
 class BoundOutDegree(BaseTransform):
     def __init__(self, max_out_degree: int):
         self.num_neighbors = max_out_degree
-        self.with_replacement = False
 
     def __call__(self, data: Data) -> Data:
         data.adj_t = data.adj_t.t()
@@ -19,15 +17,26 @@ class BoundOutDegree(BaseTransform):
         return data
 
     def sample(self, data: Data) -> Data:
-        colptr, row, perm = to_csc(data, device='cpu')
-        index = torch.arange(0, data.num_nodes-1, dtype=int)
-        sample_fn = torch.ops.torch_sparse.neighbor_sample
-        node, row, col, edge = sample_fn(
-            colptr, row, index, [self.num_neighbors], self.with_replacement, True
+        device = data.adj_t.device()
+        colptr, row, _ = data.adj_t.csr()
+        seed = torch.arange(0, data.num_nodes-1, dtype=int)
+        out = neighbor_sample(
+            colptr.cpu(),
+            row.cpu(),
+            seed=seed,
+            num_neighbors=[self.num_neighbors],
+            csc=True,
+            replace=False,
+            directed=True,
+            disjoint=False,
+            return_edge_id=False,
         )
-        data = filter_data(data, node, row, col, edge, perm)
+        row, col, _, _, _, _ = out
+        adj_t = SparseTensor(row=row, col=col, 
+            sparse_sizes=(data.num_nodes, data.num_nodes),
+            is_sorted=False, trust_data=True).to_device(device)
+        data.adj_t = adj_t
         return data
-
 
 
 class BoundDegree(BaseTransform):
