@@ -32,7 +32,7 @@ class BoundOutDegree(BaseTransform):
             return_edge_id=False,
         )
         row, col, _, _, _, _ = out
-        adj_t = SparseTensor(row=row, col=col, 
+        adj_t = SparseTensor(row=col, col=row, 
             sparse_sizes=(data.num_nodes, data.num_nodes),
             is_sorted=False, trust_data=True).to_device(device)
         data.adj_t = adj_t
