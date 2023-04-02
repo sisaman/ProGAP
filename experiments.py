@@ -14,71 +14,43 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
     batch_size = {'facebook': 256, 'reddit': 2048, 'amazon': 4096, 'facebook-100': 4096, 'wenet': 1024}
     max_degree = {'facebook': 100, 'reddit': 400, 'amazon': 50, 'facebook-100': 100, 'wenet': 400}
 
-    progap_methods  = ['progap-inf', 'progap-edp', 'progap-ndp']
-    # gap_methods  = ['gap-inf', 'gap-edp', 'gap-ndp']
-    # sage_methods = ['sage-inf', 'sage-edp', 'sage-ndp']
-    # mlp_methods  = ['mlp', 'mlp-dp']
-
-    inf_methods  = ['progap-inf'
-                    # , 'gap-inf'
-                    ]
-    edp_methods  = ['progap-edp', 
-                    # 'gap-edp', 'mlp'
-                    ]
-    ndp_methods  = ['progap-ndp', 
-                    # 'gap-ndp', 'mlp-dp'
-                    ]
-
-    all_methods  = inf_methods + edp_methods + ndp_methods
-    hparams = {dataset: {method: {} for method in all_methods} for dataset in datasets}
+    methods = ['progap', 'gap']
+    levels = ['none', 'edge', 'node']
+    hparams = {dataset: {method: {level: {} for level in levels} for method in methods} for dataset in datasets}
 
     for dataset in datasets:
-        # For ProGAP methods
-        for method in progap_methods:
-            hparams[dataset][method]['encoder_layers'] = [1, 2]
-            hparams[dataset][method]['head_layers'] = 1
-            hparams[dataset][method]['jk'] = 'cat'
-            hparams[dataset][method]['stages'] = [2, 3, 4, 5, 6]
-            hparams[dataset][method]['layerwise'] = False
-        
-        # # For GAP methods
-        # for method in gap_methods:
-        #     hparams[dataset][method]['encoder_layers'] = 2
-        #     hparams[dataset][method]['base_layers'] = 1
-        #     hparams[dataset][method]['head_layers'] = 1
-        #     hparams[dataset][method]['combine'] = 'cat'
-        #     hparams[dataset][method]['hops'] = [1, 2, 3, 4, 5]
-        
-        # # For SAGE methods
-        # for method in sage_methods:
-        #     hparams[dataset][method]['base_layers'] = 2
-        #     hparams[dataset][method]['head_layers'] = 1
-        #     if method != 'sage-ndp':
-        #         hparams[dataset][method]['mp_layers'] = [1, 2, 3, 4, 5]
-        
-        # # For MLP methods
-        # for method in mlp_methods:
-        #     hparams[dataset][method]['num_layers'] = 3
-        
-        # For graph-based NDP methods
-        for method in set(ndp_methods) - {'mlp-dp'}:
-            hparams[dataset][method]['max_degree'] = max_degree[dataset]
-        
-        # For all methods
-        for method in all_methods:
+        # Default for all methods
+        for method in methods:
             hparams[dataset][method]['hidden_dim'] = 16
             hparams[dataset][method]['activation'] = 'selu'
             hparams[dataset][method]['optimizer'] = 'adam'
             hparams[dataset][method]['learning_rate'] = [0.01, 0.05]
             hparams[dataset][method]['repeats'] = 10
-            if method in ndp_methods:
-                hparams[dataset][method]['max_grad_norm'] = 1.0
-                hparams[dataset][method]['epochs'] = [5, 10]
-                hparams[dataset][method]['batch_size'] = batch_size[dataset]
-            else:
-                hparams[dataset][method]['batch_norm'] = True
-                hparams[dataset][method]['epochs'] = 100
-                hparams[dataset][method]['batch_size'] = 'full'
+            hparams[dataset][method]['epochs'] = 100
+            hparams[dataset][method]['batch_size'] = 'full'
+
+        # For ProGAP methods
+        for level in levels:
+            hparams[dataset]['progap'][level]['base_layers'] = [1, 2]
+            hparams[dataset]['progap'][level]['head_layers'] = 1
+            hparams[dataset]['progap'][level]['jk'] = 'cat'
+            hparams[dataset]['progap'][level]['depth'] = [1, 2, 3, 4, 5]
+            hparams[dataset]['progap'][level]['layerwise'] = False
+        
+        # For GAP methods
+        for level in levels:
+            hparams[dataset]['gap'][level]['encoder_layers'] = 2
+            hparams[dataset]['gap'][level]['base_layers'] = 1
+            hparams[dataset]['gap'][level]['head_layers'] = 1
+            hparams[dataset]['gap'][level]['combine'] = 'cat'
+            hparams[dataset]['gap'][level]['hops'] = [1, 2, 3, 4, 5]
+        
+        # For node-level methods
+        for method in methods:
+            hparams[dataset][method]['node']['max_degree'] = max_degree[dataset]
+            hparams[dataset][method]['max_grad_norm'] = 1.0
+            hparams[dataset][method]['epochs'] = [5, 10]
+            hparams[dataset][method]['batch_size'] = batch_size[dataset]
 
     progress = Progress(
         *Progress.get_default_columns(),
@@ -90,34 +62,37 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
     with progress:
         # ### Accuracy/Privacy Trade-off
         for dataset in datasets:
-            for method in all_methods:
-                params = {}
-                if method in ndp_methods:
-                    params['epsilon'] = [2, 4, 8, 16, 32]
-                elif method in set(edp_methods) - {'mlp'}:
-                    params['epsilon'] = [0.25, 0.5, 1, 2, 4]
-                    
-                registry.register(
-                    'train.py',
-                    method, 
-                    dataset=dataset,
-                    **params, 
-                    **hparams[dataset][method]
-                )
+            for method in methods:
+                for level in levels:
+                    params = hparams[dataset][method][level]
+                    if level == 'node':
+                        params['epsilon'] = [2, 4, 8, 16, 32]
+                    elif level == 'edge':
+                        params['epsilon'] = [0.25, 0.5, 1, 2, 4]
+                        
+                    registry.register(
+                        'train.py',
+                        method, 
+                        level,
+                        dataset=dataset,
+                        **params, 
+                    )
 
-                progress.update(task, registered=len(registry.job_list))
+                    progress.update(task, registered=len(registry.job_list))
 
         # ### Convergence
         for dataset in datasets:
-            for method in progap_methods:
-                params = {**hparams[dataset][method]}
-                params['repeats'] = 1
-                params['stages'] = 6
+            for level in levels:
+                if level == 'none': continue
 
-                if method in ndp_methods:
+                params = {**hparams[dataset]['progap'][level]}
+                params['repeats'] = 1
+                params['depth'] = 5
+
+                if level == 'node':
                     params['epsilon'] = 8
                     params['epochs'] = 10
-                elif method in set(edp_methods) - {'mlp'}:
+                elif level == 'edge':
                     params['epsilon'] = 1
                     params['epochs'] = 100
                 
@@ -125,6 +100,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                 registry.register(
                     'train.py',
                     method, 
+                    level,
                     dataset=dataset,
                     **params,
                 )
@@ -133,18 +109,21 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
 
         # ### Progressive vs. Layer-wise
         for dataset in datasets:
-            for method in progap_methods:
-                params = {**hparams[dataset][method]}
+            for level in levels:
+                if level == 'none': continue
+
+                params = {**hparams[dataset]['progap'][level]}
                 
-                if method in ndp_methods:
+                if level == 'node':
                     params['epsilon'] = 8
-                elif method in set(edp_methods) - {'mlp'}:
+                elif level == 'edge':
                     params['epsilon'] = 1
                 
                 params['layerwise'] = True
                 registry.register(
                     'train.py',
                     method, 
+                    level,
                     dataset=dataset,
                     **params,
                 )
@@ -153,6 +132,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                 registry.register(
                     'train.py',
                     method, 
+                    level,
                     dataset=dataset,
                     **params,
                 )
