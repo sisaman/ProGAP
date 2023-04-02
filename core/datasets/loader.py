@@ -4,7 +4,7 @@ from typing import Annotated
 import torch
 from core import console
 from torch_geometric.data import Data
-from torch_geometric.datasets import Reddit, Amazon as AmazonDataset, FacebookPagePage, Flickr
+from torch_geometric.datasets import Reddit
 from torch_geometric.transforms import Compose, ToSparseTensor, RandomNodeSplit
 from core.args.utils import ArgInfo
 from core.data.transforms import FilterClassByCount
@@ -13,8 +13,6 @@ from core.data.transforms import RemoveIsolatedNodes
 from core.data.utils import num_edges
 from core.datasets import Facebook, Amazon
 from core.datasets.facebook import Facebook100
-from core.datasets.twitch import load_twitch
-from core.datasets.tweibo import TWeibo
 from core.utils import dict2table
 
 
@@ -44,40 +42,10 @@ class DatasetLoader:
                 FilterClassByCount(min_count=1000, remove_unlabeled=True)
             ])
         ),
-        'computers': partial(AmazonDataset, name="Computers",
-            transform=Compose([
-                RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                # FilterClassByCount(min_count=100000, remove_unlabeled=True)
-            ])
-        ),
-        'twitch': partial(load_twitch,
-            transform=Compose([
-                RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                # FilterClassByCount(min_count=10000, remove_unlabeled=True)
-            ])
-        ),
-        'facebook-pages': partial(FacebookPagePage,
-            transform=Compose([
-                RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                # FilterClassByCount(min_count=10000, remove_unlabeled=True)
-            ])
-        ),
-        'flickr': partial(Flickr,
-            transform=Compose([
-                RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                # FilterClassByCount(min_count=10000, remove_unlabeled=True)
-            ])
-        ),
         'facebook-100': partial(Facebook100, target='year', 
             transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
                 FilterClassByCount(min_count=100000, remove_unlabeled=True)
-            ])
-        ),
-        'tweibo': partial(TWeibo,
-            transform=Compose([
-                RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                # FilterClassByCount(min_count=10000, remove_unlabeled=True)
             ])
         ),
         'wenet': partial(load_wenet,
