@@ -6,10 +6,10 @@ from class_resolver.contrib.torch import activation_resolver
 from core import console
 from core.args.utils import ArgInfo
 from core.nn.jk import JumpingKnowledge as JK
-from core.methods.node.base import NodeClassification
+from core.methods.base import NodeClassification
 from core.nn.nap import NAP
 from core.modules.base import Metrics, TrainableModule
-from core.modules.node.prog import ProgressiveModule
+from core.modules.prog import ProgressiveModule
 from core import globals
 
 

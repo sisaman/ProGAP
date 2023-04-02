@@ -1,9 +1,9 @@
-from core.methods.node.gap.base import GAP
-from core.methods.node.gap.edge import EdgeLevelGAP
-from core.methods.node.gap.node import NodeLevelGAP
-from core.methods.node.progap.base import ProGAP
-from core.methods.node.progap.edge import EdgeLevelProGAP
-from core.methods.node.progap.node import NodeLevelProGAP
+from core.methods.gap.base import GAP
+from core.methods.gap.edge import EdgeLevelGAP
+from core.methods.gap.node import NodeLevelGAP
+from core.methods.progap.base import ProGAP
+from core.methods.progap.edge import EdgeLevelProGAP
+from core.methods.progap.node import NodeLevelProGAP
 
 
 supported_methods = {

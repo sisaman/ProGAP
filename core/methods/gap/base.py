@@ -6,11 +6,11 @@ from torch.optim import Adam, SGD, Optimizer
 from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
-from core.methods.node.base import NodeClassification
+from core.methods.base import NodeClassification
 from core.nn.multi_mlp import MultiMLP
 from core.modules.base import Metrics
-from core.modules.node.cm import ClassificationModule
-from core.modules.node.em import EncoderModule
+from core.modules.cm import ClassificationModule
+from core.modules.em import EncoderModule
 
 
 class GAP (NodeClassification):
