@@ -5,7 +5,7 @@ from opacus.optimizers import DPOptimizer
 from autodp.transformer_zoo import Composition, AmplificationBySampling
 from torch.nn import Module
 from torch.optim import Optimizer
-from core.data.loader import NodeDataLoader
+from core.data.loader.node import NodeDataLoader
 from core.privacy.mechanisms.commons import GaussianMechanism, InfMechanism, ZeroMechanism
 from core.privacy.mechanisms.noisy import NoisyMechanism
 

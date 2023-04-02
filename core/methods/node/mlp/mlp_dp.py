@@ -7,7 +7,7 @@ from core.args.utils import ArgInfo
 from core.methods.node import MLP
 from core.privacy.algorithms.noisy_sgd import NoisySGD
 from core.modules.base import Metrics, Stage
-from core.data.loader import NodeDataLoader
+from core.data.loader.node import NodeDataLoader
 
 
 class PrivMLP (MLP):

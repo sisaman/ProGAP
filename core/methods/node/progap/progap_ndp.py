@@ -5,7 +5,7 @@ from torch_geometric.data import Data
 from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
-from core.data.loader import NodeDataLoader
+from core.data.loader.node import NodeDataLoader
 from core.methods.node.progap.progap_inf import ProGAP
 from core.nn.nap import NAP
 from core.privacy.mechanisms import ComposedNoisyMechanism

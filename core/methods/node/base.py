@@ -4,7 +4,7 @@ from torch import Tensor
 from torch.optim import Adam, SGD, Optimizer
 from torch_geometric.data import Data
 from core.args.utils import ArgInfo
-from core.data.loader import NodeDataLoader
+from core.data.loader.node import NodeDataLoader
 from core import globals
 from core.methods.base import MethodBase
 from core.modules.base import TrainableModule, Metrics, Stage
