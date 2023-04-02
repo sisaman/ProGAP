@@ -8,11 +8,12 @@ with console.status('importing modules'):
     from typing import Annotated
     from argparse import ArgumentParser
     from core import globals
-    from core.datasets import DatasetLoader
+    from core.datasets.loader import DatasetLoader
     from core.args.utils import print_args, create_arguments, strip_kwargs, ArgInfo
     from core.args.formatter import ArgumentDefaultsRichHelpFormatter
-    from core.loggers import Logger
-    from core.methods.node import supported_methods, NodeClassification
+    from core.loggers.factory import Logger
+    from core.methods.node.base import NodeClassification
+    from core.methods.registry import supported_methods
     from core.utils import confidence_interval
     from torch_geometric.data import Data
     from torch_geometric import seed_everything

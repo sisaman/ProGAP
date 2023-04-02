@@ -7,10 +7,11 @@ from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
-from core.methods.node import GAP
-from core.privacy.mechanisms import ComposedNoisyMechanism
-from core.privacy.algorithms import PMA, NoisySGD
-from core.data.transforms import BoundOutDegree
+from core.methods.node.gap.base import GAP
+from core.privacy.mechanisms.composed import ComposedNoisyMechanism
+from core.privacy.algorithms.pma import PMA
+from core.privacy.algorithms.noisy_sgd import NoisySGD
+from core.data.transforms.bound_degree import BoundOutDegree
 from core.modules.base import Metrics, Phase
 
 

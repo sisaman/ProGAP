@@ -6,8 +6,8 @@ from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.data.utils import num_edges
-from core.methods.node import GAP
-from core.privacy.algorithms import PMA
+from core.methods.node.gap.base import GAP
+from core.privacy.algorithms.pma import PMA
 from core.modules.base import Metrics
 
 

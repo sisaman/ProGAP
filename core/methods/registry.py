@@ -1,4 +1,3 @@
-from core.methods.node.base import NodeClassification
 from core.methods.node.gap.base import GAP
 from core.methods.node.gap.edge import EdgeLevelGAP
 from core.methods.node.gap.node import NodeLevelGAP

@@ -7,11 +7,12 @@ from torch_geometric.data import Data
 from torch_geometric.datasets import Reddit
 from torch_geometric.transforms import Compose, ToSparseTensor, RandomNodeSplit
 from core.args.utils import ArgInfo
-from core.data.transforms import FilterClassByCount
-from core.data.transforms import RemoveSelfLoops
-from core.data.transforms import RemoveIsolatedNodes
+from core.data.transforms.filter_class import FilterClassByCount
+from core.data.transforms.remove_self_loops import RemoveSelfLoops
+from core.data.transforms.remove_isolated_nodes import RemoveIsolatedNodes
 from core.data.utils import num_edges
-from core.datasets import Facebook, Amazon
+from core.datasets.amazon import Amazon
+from core.datasets.facebook import Facebook
 from core.datasets.facebook import Facebook100
 from core.utils import dict2table
 

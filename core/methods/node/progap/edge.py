@@ -6,7 +6,7 @@ from core.args.utils import ArgInfo
 from core.data.utils import num_edges
 from core.methods.node.progap.base import ProGAP
 from core.nn.nap import NAP
-from core.privacy.mechanisms import ComposedGaussianMechanism
+from core.privacy.mechanisms.composed import ComposedGaussianMechanism
 from core.modules.base import Metrics
 
 

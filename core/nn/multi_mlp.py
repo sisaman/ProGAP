@@ -3,7 +3,7 @@ import torch
 from torch import Tensor
 import torch.nn.functional as F
 from torch.nn import ModuleList, LazyBatchNorm1d, Linear, Module, Dropout
-from core.nn import MLP
+from core.nn.mlp import MLP
 
 
 class MultiMLP(Module):

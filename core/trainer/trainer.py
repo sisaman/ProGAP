@@ -4,7 +4,7 @@ from torch.types import Number
 from torch.optim import Optimizer
 from typing import Annotated, Iterable, Literal, Optional
 from core.args.utils import ArgInfo
-from core.loggers import Logger
+from core.loggers.factory import Logger
 from torchmetrics import MeanMetric
 from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, Phase, TrainableModule

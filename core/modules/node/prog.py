@@ -2,7 +2,9 @@ from typing import Callable, Iterator, Optional
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-from core.nn import MLP, JumpingKnowledge, ModuleList, Parameter
+from torch.nn import ModuleList, Parameter
+from core.nn.mlp import MLP
+from core.nn.jk import JumpingKnowledge
 from torch_geometric.data import Data
 from core.modules.base import Metrics, Phase, TrainableModule
 

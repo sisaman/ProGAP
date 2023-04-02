@@ -1,7 +1,6 @@
 import os
 import ssl
 import torch
-import random
 import pandas as pd
 from scipy.io import loadmat
 from sklearn.preprocessing import LabelEncoder

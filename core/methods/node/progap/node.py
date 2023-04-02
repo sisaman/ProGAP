@@ -8,9 +8,9 @@ from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
 from core.methods.node.progap.base import ProGAP
 from core.nn.nap import NAP
-from core.privacy.mechanisms import ComposedNoisyMechanism
-from core.privacy.algorithms import NoisySGD
-from core.data.transforms import BoundOutDegree
+from core.privacy.mechanisms.composed import ComposedNoisyMechanism
+from core.privacy.algorithms.noisy_sgd import NoisySGD
+from core.data.transforms.bound_degree import BoundOutDegree
 from core.modules.base import Metrics, Phase, TrainableModule
 from opacus.validators import ModuleValidator
 from opacus.validators.utils import register_module_fixer

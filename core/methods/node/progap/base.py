@@ -5,7 +5,7 @@ from torch_geometric.data import Data
 from class_resolver.contrib.torch import activation_resolver
 from core import console
 from core.args.utils import ArgInfo
-from core.nn import JumpingKnowledge as JK
+from core.nn.jk import JumpingKnowledge as JK
 from core.methods.node.base import NodeClassification
 from core.nn.nap import NAP
 from core.modules.base import Metrics, TrainableModule

@@ -9,7 +9,7 @@ from core import globals
 from core.methods.base import MethodBase
 from core.modules.base import TrainableModule, Metrics, Phase
 from core import console
-from core.trainer import Trainer
+from core.trainer.trainer import Trainer
 
 
 class NodeClassification(MethodBase):
