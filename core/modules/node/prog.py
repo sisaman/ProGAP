@@ -12,7 +12,7 @@ class ProgressiveModule(TrainableModule):
                  num_classes: int,
                  num_phases: int,
                  hidden_dim: int = 16,  
-                 encoder_layers: int = 2, 
+                 base_layers: int = 2, 
                  head_layers: int = 1, 
                  normalize: bool = True,
                  jk_mode: str = 'cat',
@@ -27,7 +27,7 @@ class ProgressiveModule(TrainableModule):
         self.num_classes = num_classes
         self.num_phases = num_phases
         self.hidden_dim = hidden_dim
-        self.encoder_layers = encoder_layers
+        self.base_layers = base_layers
         self.head_layers = head_layers
         self.normalize = normalize
         self.jk_mode = jk_mode
@@ -38,11 +38,11 @@ class ProgressiveModule(TrainableModule):
 
         self.current_phase = 0
 
-        self.encoders = ModuleList(
+        self.base = ModuleList(
             MLP(
                 hidden_dim=hidden_dim,
                 output_dim=hidden_dim,
-                num_layers=encoder_layers,
+                num_layers=base_layers,
                 activation_fn=activation_fn,
                 dropout=dropout,
                 batch_norm=batch_norm,
@@ -50,7 +50,7 @@ class ProgressiveModule(TrainableModule):
             ) for _ in range(num_phases)
         )
 
-        self.jks = ModuleList(
+        self.jk = ModuleList(
             JumpingKnowledge(
                 mode=jk_mode,
                 hidden_dim=hidden_dim,
@@ -60,7 +60,7 @@ class ProgressiveModule(TrainableModule):
             ) for _ in range(num_phases)
         )
 
-        self.heads = ModuleList(
+        self.head = ModuleList(
             MLP(
                 hidden_dim=hidden_dim,
                 output_dim=num_classes,
@@ -77,11 +77,11 @@ class ProgressiveModule(TrainableModule):
         if self.layerwise:
             # freeze previous layers
             for i in range(self.current_phase):
-                for param in self.encoders[i].parameters():
+                for param in self.base[i].parameters():
                     param.requires_grad = False
-                for param in self.jks[i].parameters():
+                for param in self.jk[i].parameters():
                     param.requires_grad = False
-                for param in self.heads[i].parameters():
+                for param in self.head[i].parameters():
                     param.requires_grad = False
 
     def forward(self, xs: list[Tensor]) -> tuple[Tensor, Tensor]:
@@ -95,15 +95,15 @@ class ProgressiveModule(TrainableModule):
         """
 
         for i in range(self.current_phase + 1):
-            xs[i] = self.encoders[i](xs[i])
+            xs[i] = self.base[i](xs[i])
         
         h = xs[-1]
-        x = self.jks[self.current_phase](torch.stack(xs, dim=-1))
+        x = self.jk[self.current_phase](torch.stack(xs, dim=-1))
 
         if self.normalize:
             x = F.normalize(x, p=2, dim=-1)
         
-        y = self.heads[self.current_phase](x)
+        y = self.head[self.current_phase](x)
         return h, y
 
     def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
@@ -131,11 +131,11 @@ class ProgressiveModule(TrainableModule):
         
     def reset_parameters(self):
         self.current_phase = 0
-        for encoder in self.encoders:
+        for encoder in self.base:
             encoder.reset_parameters()
-        for jk in self.jks:
+        for jk in self.jk:
             jk.reset_parameters()
-        for head in self.heads:
+        for head in self.head:
             head.reset_parameters()
         for param in super().parameters():
             param.requires_grad = True
@@ -143,8 +143,8 @@ class ProgressiveModule(TrainableModule):
     def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
         if not self.layerwise:
             for i in range(self.current_phase):
-                yield from self.encoders[i].parameters(recurse=recurse)
-        yield from self.encoders[self.current_phase].parameters(recurse=recurse)
-        yield from self.jks[self.current_phase].parameters(recurse=recurse)
-        yield from self.heads[self.current_phase].parameters(recurse=recurse)
+                yield from self.base[i].parameters(recurse=recurse)
+        yield from self.base[self.current_phase].parameters(recurse=recurse)
+        yield from self.jk[self.current_phase].parameters(recurse=recurse)
+        yield from self.head[self.current_phase].parameters(recurse=recurse)
         

@@ -1,1 +1,1 @@
-python train.py progap-ndp --dataset reddit --stages 5 --epsilon 8 --encoder_layers 2 --head_layers 1 --jk cat --max_degree 400 --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.01 --repeats 1 --max_grad_norm 1 --epochs 10 --batch_size 2048 $@
+python train.py progap-ndp --dataset reddit --stages 5 --epsilon 8 --base_layers 2 --head_layers 1 --jk cat --max_degree 400 --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.01 --repeats 1 --max_grad_norm 1 --epochs 10 --batch_size 2048 $@
