@@ -1,3 +1,4 @@
+from itertools import product
 import yaml
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from core import console
@@ -20,14 +21,14 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
 
     for dataset in datasets:
         # Default for all methods
-        for method in methods:
-            hparams[dataset][method]['hidden_dim'] = 16
-            hparams[dataset][method]['activation'] = 'selu'
-            hparams[dataset][method]['optimizer'] = 'adam'
-            hparams[dataset][method]['learning_rate'] = [0.01, 0.05]
-            hparams[dataset][method]['repeats'] = 10
-            hparams[dataset][method]['epochs'] = 100
-            hparams[dataset][method]['batch_size'] = 'full'
+        for method, level in product(methods, levels):
+            hparams[dataset][method][level]['hidden_dim'] = 16
+            hparams[dataset][method][level]['activation'] = 'selu'
+            hparams[dataset][method][level]['optimizer'] = 'adam'
+            hparams[dataset][method][level]['learning_rate'] = [0.01, 0.05]
+            hparams[dataset][method][level]['repeats'] = 10
+            hparams[dataset][method][level]['epochs'] = 100
+            hparams[dataset][method][level]['batch_size'] = 'full'
 
         # For ProGAP methods
         for level in levels:
@@ -48,9 +49,9 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
         # For node-level methods
         for method in methods:
             hparams[dataset][method]['node']['max_degree'] = max_degree[dataset]
-            hparams[dataset][method]['max_grad_norm'] = 1.0
-            hparams[dataset][method]['epochs'] = [5, 10]
-            hparams[dataset][method]['batch_size'] = batch_size[dataset]
+            hparams[dataset][method]['node']['max_grad_norm'] = 1.0
+            hparams[dataset][method]['node']['epochs'] = [5, 10]
+            hparams[dataset][method]['node']['batch_size'] = batch_size[dataset]
 
     progress = Progress(
         *Progress.get_default_columns(),
@@ -85,7 +86,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             for level in levels:
                 if level == 'none': continue
 
-                params = {**hparams[dataset]['progap'][level]}
+                params = hparams[dataset]['progap'][level]
                 params['repeats'] = 1
                 params['depth'] = 5
 
@@ -112,7 +113,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             for level in levels:
                 if level == 'none': continue
 
-                params = {**hparams[dataset]['progap'][level]}
+                params = hparams[dataset]['progap'][level]
                 
                 if level == 'node':
                     params['epsilon'] = 8
