@@ -1,4 +1,2 @@
-username: sisaman
-project:
-  train: ProGAP-Train
-  attack: ProGAP-Attack
+entity: sisaman  # Your username or team name
+project: ProGAP  # The name of the project for experiments

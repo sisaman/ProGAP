@@ -171,17 +171,9 @@ def generate(path: str):
     with open('config/wandb.yaml') as f:
         wandb_config = yaml.safe_load(f)
 
-    registry = WandBJobRegistry(
-        entity=wandb_config['username'], 
-        project=wandb_config['project']['train']
-    )
-
-    # with console.status('pulling jobs from WandB'):
+    registry = WandBJobRegistry(**wandb_config)
     registry.pull()
-
-    # with console.status('generating job commands'):
-    jobs = create_train_commands(registry)
-    
+    create_train_commands(registry)
     registry.save(path=path)
     console.info(f'job file saved to [bold blue]{path}[/bold blue]')
 
