@@ -1,0 +1,1 @@
+python train.py progap edge --dataset facebook --epsilon 1 --base_layers 1 --head_layers 1 --jk cat --depth 5 --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.01 --repeats 1 --batch_norm True --epochs 100 --batch_size full $@
