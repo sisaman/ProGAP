@@ -37,7 +37,7 @@ class WandBJobRegistry:
             
             self.df_stored_jobs.drop_duplicates(inplace=True)
     
-    def register(self, main_file, method, attack=None, **params) -> list[str]:
+    def register(self, main_file, method, level, **params) -> list[str]:
         """Register jobs to the registry.
         This method will generate all possible combinations of the parameters and
         create a list of jobs to run. The job commands are stored in the registry
@@ -46,7 +46,7 @@ class WandBJobRegistry:
         Args:
             main_file (str): Path to the main executable python file.
             method (str): Name of the method to run.
-            attack (str, optional): Name of the attack to run. Defaults to None.
+            level (str): Privacy level of the method.
             **params (dict): Dictionary of parameters to sweep over.
 
         Returns:
@@ -63,9 +63,8 @@ class WandBJobRegistry:
         param_values = list(product(*params.values()))
         df_new_configs = pd.DataFrame(param_values, columns=param_keys)
         df_new_configs['method'] = method
-        if attack is not None:
-            df_new_configs['attack'] = attack
-
+        df_new_configs['level'] = level
+        
         if self.df_stored_jobs.empty or (set(param_keys) - set(self.df_stored_jobs.columns)):
             df_out_configs = df_new_configs
         else:
@@ -78,8 +77,8 @@ class WandBJobRegistry:
         configs = df_out_configs.to_dict('records')
         for config in configs:
             config.pop('method', None)
-            config.pop('attack', None)
-            args = f" {method} {attack if attack is not None else ''} "
+            config.pop('level', None)
+            args = f" {method} {level} "
             options = ' '.join([f' --{param} {value} ' for param, value in config.items()])
             command = f'python {main_file} {args} {options} --logger wandb --project {self.project}'
             command = ' '.join(command.split())
