@@ -6,7 +6,7 @@ from core import console
 from core.args.utils import ArgInfo
 from core.methods.node import MLP
 from core.privacy.algorithms.noisy_sgd import NoisySGD
-from core.modules.base import Metrics, Stage
+from core.modules.base import Metrics, Phase
 from core.data.loader.node import NodeDataLoader
 
 
@@ -62,9 +62,9 @@ class PrivMLP (MLP):
 
         return super().fit(data, prefix=prefix)
 
-    def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
-        dataloader = super().data_loader(data, stage)
-        if stage == 'train':
+    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
+        dataloader = super().data_loader(data, phase)
+        if phase == 'train':
             dataloader.poisson_sampling = True
         return dataloader
 

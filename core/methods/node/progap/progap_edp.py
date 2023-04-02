@@ -32,7 +32,7 @@ class EdgePrivProgGAP (ProGAP):
         composed_mechanism = ComposedGaussianMechanism(
             noise_scale=1.0,
             mechanism_list=[self.nap.gm],
-            coeff_list=[self.phases - 1],
+            coeff_list=[self.stages - 1],
         )
         
         with console.status('calibrating noise to privacy budget'):

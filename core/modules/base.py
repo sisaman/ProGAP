@@ -6,7 +6,7 @@ from torch_geometric.data import Data
 from abc import ABC, abstractmethod
 
 
-Stage = Literal['train', 'val', 'test']
+Phase = Literal['train', 'val', 'test']
 Metrics = dict[str, Number]
 
 
@@ -15,7 +15,7 @@ class TrainableModule(Module, ABC):
     def forward(self, *args, **kwargs): pass
 
     @abstractmethod
-    def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]: pass
+    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]: pass
 
     @abstractmethod
     def predict(self, data: Data) -> Tensor: pass

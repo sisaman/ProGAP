@@ -7,7 +7,7 @@ from core.args.utils import ArgInfo
 from core.loggers import Logger
 from torchmetrics import MeanMetric
 from core.trainer.progress import TrainerProgress
-from core.modules.base import Metrics, Stage, TrainableModule
+from core.modules.base import Metrics, Phase, TrainableModule
 
 
 class Trainer:
@@ -44,11 +44,11 @@ class Trainer:
         # update the metric
         self.metrics[metric_name].update(metric_value, weight=weight)
 
-    def aggregate_metrics(self, stage: Stage='train') -> Metrics:
+    def aggregate_metrics(self, phase: Phase='train') -> Metrics:
         metrics = {}
 
         for metric_name, metric_value in self.metrics.items():
-            if stage in metric_name.split('/'):
+            if phase in metric_name.split('/'):
                 value = metric_value.compute()
                 metric_value.reset()
                 metrics[metric_name] = value
@@ -103,13 +103,13 @@ class Trainer:
                 metrics = {f'{prefix}epoch': epoch}
 
                 # train loop
-                train_metrics = self.loop(train_dataloader, stage='train', prefix=prefix)
+                train_metrics = self.loop(train_dataloader, phase='train', prefix=prefix)
                 metrics.update(train_metrics)
                     
                 # validation loop
                 if val_dataloader and self.val_interval and epoch % self.val_interval == 0:
 
-                    val_metrics = self.loop(val_dataloader, stage='val', prefix=prefix)
+                    val_metrics = self.loop(val_dataloader, phase='val', prefix=prefix)
                     metrics.update(val_metrics)
 
                     if best_metrics is None or self.is_better(metrics[monitor_key], best_metrics[monitor_key]):
@@ -125,7 +125,7 @@ class Trainer:
 
                 # test loop
                 if test_dataloader:
-                    test_metrics = self.loop(test_dataloader, stage='test', prefix=prefix)
+                    test_metrics = self.loop(test_dataloader, phase='test', prefix=prefix)
                     metrics.update(test_metrics)
 
                 # log and update progress
@@ -145,33 +145,33 @@ class Trainer:
 
     def test(self, dataloader: Iterable, prefix: str = '') -> Metrics:
         self.metrics.clear()
-        metrics = self.loop(dataloader, stage='test', prefix=prefix)
+        metrics = self.loop(dataloader, phase='test', prefix=prefix)
         return metrics
 
-    def loop(self, dataloader: Iterable, stage: Stage, prefix: str) -> Metrics:
-        self.model.train(stage == 'train')
-        self.progress.update(stage, visible=len(dataloader) > 1)
+    def loop(self, dataloader: Iterable, phase: Phase, prefix: str) -> Metrics:
+        self.model.train(phase == 'train')
+        self.progress.update(phase, visible=len(dataloader) > 1)
 
         for batch in dataloader:
-            metrics = self.step(batch, stage, prefix)
+            metrics = self.step(batch, phase, prefix)
             for item in metrics:
                 self.update_metrics(item, metrics[item], weight=len(batch))
-            self.progress.update(stage, advance=1)
+            self.progress.update(phase, advance=1)
 
-        self.progress.reset(stage, visible=False)
-        return self.aggregate_metrics(stage)
+        self.progress.reset(phase, visible=False)
+        return self.aggregate_metrics(phase)
 
-    def step(self, batch, stage: Stage, prefix: str) -> Metrics:
-        if stage == 'train':
+    def step(self, batch, phase: Phase, prefix: str) -> Metrics:
+        if phase == 'train':
             self.optimizer.zero_grad(set_to_none=True)
 
         grad_state = torch.is_grad_enabled()
-        torch.set_grad_enabled(stage == 'train')
-        loss, metrics = self.model.step(batch, stage=stage)
+        torch.set_grad_enabled(phase == 'train')
+        loss, metrics = self.model.step(batch, phase=phase)
         torch.set_grad_enabled(grad_state)
         
-        if stage == 'train' and loss is not None:
+        if phase == 'train' and loss is not None:
             loss.backward()
             self.optimizer.step()
 
-        return {f'{prefix}{stage}/{key}': value for key, value in metrics.items()}
+        return {f'{prefix}{phase}/{key}': value for key, value in metrics.items()}

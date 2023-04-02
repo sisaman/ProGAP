@@ -5,7 +5,7 @@ from core.nn import MLP
 from torch_geometric.data import Data
 from torch_geometric.nn import GAE, InnerProductDecoder
 from torchmetrics.functional import auroc
-from core.modules.base import TrainableModule, Stage, Metrics
+from core.modules.base import TrainableModule, Phase, Metrics
 
 
 class MLPLinkPredictor(TrainableModule):
@@ -34,7 +34,7 @@ class MLPLinkPredictor(TrainableModule):
     def forward(self, x: Tensor) -> Tensor:
         return self.model.encode(x)
 
-    def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
+    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
         z = self(data.x)
         y = torch.cat([data.pos_edge, data.neg_edge], dim=0).long()
         pos_pred = self.model.decoder(z, data.pos_edge_index, sigmoid=True)
@@ -44,7 +44,7 @@ class MLPLinkPredictor(TrainableModule):
         metrics = {'auc': auc}
 
         loss = None
-        if stage != 'test':
+        if phase != 'test':
             loss = self.model.recon_loss(z, pos_edge_index=data.pos_edge_index, neg_edge_index=data.neg_edge_index)
             metrics['loss'] = loss.detach()
 

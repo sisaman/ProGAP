@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from core.nn import MLP
 from torch_geometric.data import Data
 from core.nn.sage import SAGE
-from core.modules.base import Metrics, Stage, TrainableModule
+from core.modules.base import Metrics, Phase, TrainableModule
 
 
 class SAGENodeClassifier(TrainableModule):
@@ -62,8 +62,8 @@ class SAGENodeClassifier(TrainableModule):
         x = self.head_mlp(x)
         return x
 
-    def step(self, data: Data, stage: Stage) -> tuple[Tensor, Metrics]:
-        mask = data[f'{stage}_mask']
+    def step(self, data: Data, phase: Phase) -> tuple[Tensor, Metrics]:
+        mask = data[f'{phase}_mask']
         h = self(data.x, data.adj_t)[mask]
         preds = F.log_softmax(h, dim=-1)
         target = data.y[mask]
@@ -71,7 +71,7 @@ class SAGENodeClassifier(TrainableModule):
         metrics = {'acc': acc}
 
         loss = None
-        if stage != 'test':
+        if phase != 'test':
             loss = F.nll_loss(input=preds, target=target)
             metrics['loss'] = loss.detach()
 

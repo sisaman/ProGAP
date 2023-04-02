@@ -20,7 +20,7 @@ class JumpingKnowledge(Module):
         """forward propagation
 
         Args:
-            xs (Tensor): input with shape (batch_size, hidden_dim, num_stages)
+            xs (Tensor): input with shape (batch_size, hidden_dim, num_phases)
 
         Returns:
             Tensor: aggregated output with shape (batch_size, hidden_dim)

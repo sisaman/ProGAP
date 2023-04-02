@@ -7,7 +7,7 @@ from core import console
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
 from core.methods.node import SAGE
-from core.modules.base import Metrics, Stage
+from core.modules.base import Metrics, Phase
 from core.privacy.algorithms import GNNBasedNoisySGD
 from core.privacy.mechanisms import GaussianMechanism
 from core.privacy.mechanisms import ComposedNoisyMechanism
@@ -104,9 +104,9 @@ class NodePrivSAGE (SAGE):
             data = self.sample_neighbors(data)
         return super().predict(data)
 
-    def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
-        dataloader = super().data_loader(data, stage)
-        if stage == 'train':
+    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
+        dataloader = super().data_loader(data, phase)
+        if phase == 'train':
             dataloader.hops = 1
             dataloader.poisson_sampling = True
         return dataloader

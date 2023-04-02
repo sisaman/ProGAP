@@ -11,7 +11,7 @@ from core.methods.node import GAP
 from core.privacy.mechanisms import ComposedNoisyMechanism
 from core.privacy.algorithms import PMA, NoisySGD
 from core.data.transforms import BoundOutDegree
-from core.modules.base import Metrics, Stage
+from core.modules.base import Metrics, Phase
 
 
 class NodePrivGAP (GAP):
@@ -98,9 +98,9 @@ class NodePrivGAP (GAP):
         x = self.pma_mechanism(x, sensitivity=np.sqrt(self.max_degree))
         return x
 
-    def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
-        dataloader = super().data_loader(data, stage)
-        if stage == 'train':
+    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
+        dataloader = super().data_loader(data, phase)
+        if phase == 'train':
             dataloader.poisson_sampling = True
         return dataloader
 

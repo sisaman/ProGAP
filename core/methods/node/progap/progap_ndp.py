@@ -11,7 +11,7 @@ from core.nn.nap import NAP
 from core.privacy.mechanisms import ComposedNoisyMechanism
 from core.privacy.algorithms import NoisySGD
 from core.data.transforms import BoundOutDegree
-from core.modules.base import Metrics, Stage, TrainableModule
+from core.modules.base import Metrics, Phase, TrainableModule
 from opacus.validators import ModuleValidator
 from opacus.validators.utils import register_module_fixer
 
@@ -54,7 +54,7 @@ class NodePrivProGAP (ProGAP):
         self.nap = NAP(noise_std=0, sensitivity=np.sqrt(max_degree))
 
     def calibrate(self):
-        n = self.phases
+        n = self.stages
 
         self.noisy_sgd = NoisySGD(
             noise_scale=0.0, 
@@ -82,8 +82,8 @@ class NodePrivProGAP (ProGAP):
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
         
-    def set_phase(self, phase: int) -> None:
-        super().set_phase(phase)
+    def set_stage(self, stage: int) -> None:
+        super().set_stage(stage)
         self.noisy_sgd.prepare_module(self.model)
 
     def fit(self, data: Data, prefix: str = '') -> Metrics:
@@ -98,9 +98,9 @@ class NodePrivProGAP (ProGAP):
 
         return super().fit(data, prefix=prefix)
 
-    def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
-        dataloader = super().data_loader(data, stage)
-        if stage == 'train':
+    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
+        dataloader = super().data_loader(data, phase)
+        if phase == 'train':
             dataloader.poisson_sampling = True
         return dataloader
 

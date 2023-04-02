@@ -4,7 +4,7 @@ from torch import Tensor
 import torch.nn.functional as F
 from core.nn import MLP
 from torch_geometric.data import Data
-from core.modules.base import TrainableModule, Stage, Metrics
+from core.modules.base import TrainableModule, Phase, Metrics
 
 
 class MLPNodeClassifier(TrainableModule):
@@ -32,15 +32,15 @@ class MLPNodeClassifier(TrainableModule):
     def forward(self, x: Tensor) -> Tensor:
         return self.model(x)
 
-    def step(self, data: Data, stage: Stage) -> tuple[Optional[Tensor], Metrics]:
-        mask = data[f'{stage}_mask']
+    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
+        mask = data[f'{phase}_mask']
         x, y = data.x[mask], data.y[mask]
         preds = F.log_softmax(self(x), dim=-1)
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
         metrics = {'acc': acc}
 
         loss = None
-        if stage != 'test':
+        if phase != 'test':
             loss = F.nll_loss(input=preds, target=y)
             metrics['loss'] = loss.detach()
 

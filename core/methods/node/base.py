@@ -7,7 +7,7 @@ from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
 from core import globals
 from core.methods.base import MethodBase
-from core.modules.base import TrainableModule, Metrics, Stage
+from core.modules.base import TrainableModule, Metrics, Phase
 from core import console
 from core.trainer import Trainer
 
@@ -110,15 +110,15 @@ class NodeClassification(MethodBase):
         Optim = {'sgd': SGD, 'adam': Adam}[self.optimizer_name]
         return Optim(self.classifier.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
 
-    def data_loader(self, data: Data, stage: Stage) -> NodeDataLoader:
-        """Return a dataloader for the given stage."""
+    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
+        """Return a dataloader for the given phase."""
         
-        batch_size = 'full' if (stage != 'train' and self.full_batch_eval) else self.batch_size
+        batch_size = 'full' if (phase != 'train' and self.full_batch_eval) else self.batch_size
         dataloader = NodeDataLoader(
             data=data, 
-            stage=stage,
+            phase=phase,
             batch_size=batch_size, 
-            shuffle=(stage == 'train'), 
+            shuffle=(phase == 'train'), 
             drop_last=True,
             poisson_sampling=False,
         )

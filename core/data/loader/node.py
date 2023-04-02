@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from torch_geometric.data import Data
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.transforms import ToSparseTensor
-from core.modules.base import Stage
+from core.modules.base import Phase
 
 
 class NodeDataLoader:
@@ -12,7 +12,7 @@ class NodeDataLoader:
 
     Args:
         data (Data): The graph data object.
-        stage (Stage): Training stage. One of 'train', 'val', 'test'.
+        phase (Phase): Training phase. One of 'train', 'val', 'test'.
         batch_size (int or 'full', optional): The batch size.
             If set to 'full', the entire graph is used as a single batch.
             (default: 'full')
@@ -27,7 +27,7 @@ class NodeDataLoader:
     """
     def __init__(self, 
                  data: Data, 
-                 stage: Stage,
+                 phase: Phase,
                  batch_size: Union[int, Literal['full']] = 'full', 
                  hops: Optional[int] = None,
                  shuffle: bool = True, 
@@ -35,7 +35,7 @@ class NodeDataLoader:
                  poisson_sampling: bool = False):
 
         self.data = data
-        self.stage = stage
+        self.phase = phase
         self.batch_size = batch_size
         self.hops = hops
         self.shuffle = shuffle
@@ -44,7 +44,7 @@ class NodeDataLoader:
         self.device = data.x.device
 
         if batch_size != 'full':
-            self.node_indices = data[f'{stage}_mask'].nonzero().view(-1)
+            self.node_indices = data[f'{phase}_mask'].nonzero().view(-1)
             self.num_nodes = self.node_indices.size(0)
 
     def __iter__(self) -> Iterator[Data]:
@@ -72,7 +72,7 @@ class NodeDataLoader:
                 batch_mask[batch_nodes] = True
 
                 data = Data(**self.data.to_dict())
-                data[f'{self.stage}_mask'] = data[f'{self.stage}_mask'] & batch_mask
+                data[f'{self.phase}_mask'] = data[f'{self.phase}_mask'] & batch_mask
             else:
                 if not hasattr(self, 'edge_index'):
                     self.edge_index = torch.stack(self.data.adj_t.t().coo()[:2], dim=0)
@@ -93,7 +93,7 @@ class NodeDataLoader:
                     y=self.data.y[subset],
                     edge_index=batch_edge_index,
                 )
-                data[f'{self.stage}_mask'] = batch_mask
+                data[f'{self.phase}_mask'] = batch_mask
                 data = ToSparseTensor(layout=torch.sparse_csr)(data)
             
             yield data
