@@ -1,1 +1,1 @@
-python train.py progap-ndp --dataset wenet --epsilon 8 --base_layers 2 --head_layers 1 --jk cat --stages 4 --max_degree 400 --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.05 --repeats 1 --max_grad_norm 1.0 --epochs 10 --batch_size 1024 $@
+python train.py progap-ndp --dataset wenet --epsilon 8 --base_layers 2 --head_layers 1 --jk cat --phases 4 --max_degree 400 --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.05 --repeats 1 --max_grad_norm 1.0 --epochs 10 --batch_size 1024 $@

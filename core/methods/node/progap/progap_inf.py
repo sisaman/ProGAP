@@ -18,7 +18,7 @@ class ProGAP (NodeClassification):
 
     def __init__(self,
                  num_classes,
-                 stages:          Annotated[int,   ArgInfo(help='number of stages', option='-k')] = 3,
+                 phases:          Annotated[int,   ArgInfo(help='number of phases', option='-k')] = 3,
                  hidden_dim:      Annotated[int,   ArgInfo(help='dimension of the hidden layers')] = 16,
                  base_layers:  Annotated[int,   ArgInfo(help='number of base MLP layers')] = 1,
                  head_layers:     Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
@@ -32,11 +32,11 @@ class ProGAP (NodeClassification):
 
         super().__init__(num_classes, **kwargs)
 
-        self.stages = stages
+        self.phases = phases
 
         self.model = ProgressiveModule(
             num_classes=num_classes,
-            num_phases=stages,
+            num_phases=phases,
             hidden_dim=hidden_dim,
             base_layers=base_layers,
             head_layers=head_layers,
@@ -86,7 +86,7 @@ class ProGAP (NodeClassification):
         return self.pipeline(data, train=True, prefix=prefix)
 
     def pipeline(self, data: Data, train: bool=False, prefix: str = '') -> Optional[Metrics]:
-        n = self.stages
+        n = self.phases
         data.x0 = data.x
         self.model.set_phase(0)
         
@@ -99,7 +99,7 @@ class ProGAP (NodeClassification):
             self.set_phase(i)
 
             if train:
-                console.info(f'Fitting stage {i+1} of {n}')
+                console.info(f'Fitting phase {i+1} of {n}')
                 self.trainer.reset()
                 self.model.to(self.device)
                 metrics = self.trainer.fit(

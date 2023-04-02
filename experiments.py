@@ -38,7 +38,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             hparams[dataset][method]['encoder_layers'] = [1, 2]
             hparams[dataset][method]['head_layers'] = 1
             hparams[dataset][method]['jk'] = 'cat'
-            hparams[dataset][method]['stages'] = [2, 3, 4, 5, 6]
+            hparams[dataset][method]['phases'] = [2, 3, 4, 5, 6]
             hparams[dataset][method]['layerwise'] = False
         
         # # For GAP methods
@@ -112,7 +112,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             for method in progap_methods:
                 params = {**hparams[dataset][method]}
                 params['repeats'] = 1
-                params['stages'] = 6
+                params['phases'] = 6
 
                 if method in ndp_methods:
                     params['epsilon'] = 8

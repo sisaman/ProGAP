@@ -54,7 +54,7 @@ class NodePrivProGAP (ProGAP):
         self.nap = NAP(noise_std=0, sensitivity=np.sqrt(max_degree))
 
     def calibrate(self):
-        n = self.stages
+        n = self.phases
 
         self.noisy_sgd = NoisySGD(
             noise_scale=0.0, 
