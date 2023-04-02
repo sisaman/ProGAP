@@ -18,25 +18,24 @@ class ProGAP (NodeClassification):
 
     def __init__(self,
                  num_classes,
-                 stages:          Annotated[int,   ArgInfo(help='number of stages', option='-k')] = 3,
-                 hidden_dim:      Annotated[int,   ArgInfo(help='dimension of the hidden layers')] = 16,
-                 base_layers:  Annotated[int,   ArgInfo(help='number of base MLP layers')] = 1,
-                 head_layers:     Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
-                 jk:              Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=JK.supported_modes)] = 'cat',
-                 activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
-                 dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
-                 batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
-                 layerwise:       Annotated[bool,  ArgInfo(help='if true, then model uses layerwise training')] = False,
-                 **kwargs:        Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
+                 depth:         Annotated[int,   ArgInfo(help='model depth', option='-k')] = 2,
+                 hidden_dim:    Annotated[int,   ArgInfo(help='dimension of the hidden layers')] = 16,
+                 base_layers:   Annotated[int,   ArgInfo(help='number of base MLP layers')] = 1,
+                 head_layers:   Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
+                 jk:            Annotated[str,   ArgInfo(help='jumping knowledge combination scheme', choices=JK.supported_modes)] = 'cat',
+                 activation:    Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
+                 dropout:       Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
+                 batch_norm:    Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
+                 layerwise:     Annotated[bool,  ArgInfo(help='if true, then model uses layerwise training')] = False,
+                 **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
                  ):
 
         super().__init__(num_classes, **kwargs)
-
-        self.stages = stages
+        self.num_stages = depth + 1
 
         self.model = ProgressiveModule(
             num_classes=num_classes,
-            num_stages=stages,
+            num_stages=self.num_stages,
             hidden_dim=hidden_dim,
             base_layers=base_layers,
             head_layers=head_layers,
@@ -86,7 +85,7 @@ class ProGAP (NodeClassification):
         return self.pipeline(data, train=True, prefix=prefix)
 
     def pipeline(self, data: Data, train: bool=False, prefix: str = '') -> Optional[Metrics]:
-        n = self.stages
+        n = self.num_stages
         data.x0 = data.x
         self.model.set_stage(0)
         
