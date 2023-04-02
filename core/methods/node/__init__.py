@@ -1,27 +1,21 @@
 from core.methods.node.base import NodeClassification
-from core.methods.node.gap.gap_inf import GAP
-from core.methods.node.gap.gap_edp import EdgePrivGAP
-from core.methods.node.gap.gap_ndp import NodePrivGAP
-from core.methods.node.progap.progap_inf import ProGAP
-from core.methods.node.progap.progap_edp import EdgePrivProgGAP
-from core.methods.node.progap.progap_ndp import NodePrivProGAP
-from core.methods.node.sage.sage_inf import SAGE
-from core.methods.node.sage.sage_edp import EdgePrivSAGE
-from core.methods.node.sage.sage_ndp import NodePrivSAGE
-from core.methods.node.mlp.mlp import MLP
-from core.methods.node.mlp.mlp_dp import PrivMLP
+from core.methods.node.gap.base import GAP
+from core.methods.node.gap.edge import EdgeLevelGAP
+from core.methods.node.gap.node import NodeLevelGAP
+from core.methods.node.progap.base import ProGAP
+from core.methods.node.progap.edge import EdgeLevelProGAP
+from core.methods.node.progap.node import NodeLevelProGAP
 
 
 supported_methods = {
-    'gap-inf':  GAP,
-    'gap-edp':  EdgePrivGAP,
-    'gap-ndp':  NodePrivGAP,
-    'sage-inf': SAGE,
-    'sage-edp': EdgePrivSAGE,
-    'sage-ndp': NodePrivSAGE,
-    'mlp':      MLP,
-    'mlp-dp':   PrivMLP,
-    'progap-inf': ProGAP,
-    'progap-edp': EdgePrivProgGAP,
-    'progap-ndp': NodePrivProGAP,
+    'progap': {
+        'none': ProGAP,
+        'edge': EdgeLevelProGAP,
+        'node': NodeLevelProGAP,
+    },
+    'gap': {
+        'none': GAP,
+        'edge': EdgeLevelGAP,
+        'node': NodeLevelGAP,
+    },
 }

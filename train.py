@@ -42,7 +42,7 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
     logger = Logger.setup(enabled=log_all, config=config, **logger_args)
 
     ### initiallize method ###
-    Method = supported_methods[kwargs['method']]
+    Method = supported_methods[kwargs['method']][kwargs['level']]
     method_args = strip_kwargs(Method, kwargs)
     method: NodeClassification = Method(num_classes=num_classes, **method_args)
 
@@ -89,27 +89,36 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
 
 def main():
     init_parser = ArgumentParser(add_help=False, conflict_handler='resolve')
-    method_subparser = init_parser.add_subparsers(dest='method', required=True, title='algorithm to use')
+    method_subparser = init_parser.add_subparsers(dest='method', required=True, title='algorithm')
 
-    for method_name, method_class in supported_methods.items():
+    for method_name, levels in supported_methods.items():
         method_parser = method_subparser.add_parser(
             name=method_name, 
-            help=method_class.__doc__, 
+            # help=method_class.__doc__, 
             formatter_class=ArgumentDefaultsRichHelpFormatter
         )
 
-        # dataset args
-        group_dataset = method_parser.add_argument_group('dataset arguments')
-        create_arguments(DatasetLoader, group_dataset)
+        level_subparser = method_parser.add_subparsers(dest='level', required=True, title='privacy level')
 
-        # method args
-        group_method = method_parser.add_argument_group('method arguments')
-        create_arguments(method_class, group_method)
-        
-        # experiment args
-        group_expr = method_parser.add_argument_group('experiment arguments')
-        create_arguments(run, group_expr)
-        create_arguments(Logger.setup, group_expr)
+        for level_name, method_class in levels.items():
+            level_parser = level_subparser.add_parser(
+                name=level_name, 
+                help=f'privacy level {level_name}', 
+                formatter_class=ArgumentDefaultsRichHelpFormatter
+            )
+
+            # dataset args
+            group_dataset = level_parser.add_argument_group('dataset arguments')
+            create_arguments(DatasetLoader, group_dataset)
+
+            # method args
+            group_method = level_parser.add_argument_group('method arguments')
+            create_arguments(method_class, group_method)
+            
+            # experiment args
+            group_expr = level_parser.add_argument_group('experiment arguments')
+            create_arguments(run, group_expr)
+            create_arguments(Logger.setup, group_expr)
 
     parser = ArgumentParser(parents=[init_parser], formatter_class=ArgumentDefaultsRichHelpFormatter)
     kwargs = vars(parser.parse_args())
