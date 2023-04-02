@@ -3,6 +3,7 @@ from typing import Annotated, Literal, Union
 from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
+from core.data.utils import num_edges
 from core.methods.node.progap.progap_inf import ProGAP
 from core.nn.nap import NAP
 from core.privacy.mechanisms import ComposedGaussianMechanism
@@ -37,6 +38,7 @@ class EdgePrivProgGAP (ProGAP):
         
         with console.status('calibrating noise to privacy budget'):
             if self.delta == 'auto':
+                console.info('num_edges = %d' % self.num_edges)
                 delta = 0.0 if np.isinf(self.epsilon) else 1. / (10 ** len(str(self.num_edges)))
                 console.info('delta = %.0e' % delta)
             
@@ -44,8 +46,9 @@ class EdgePrivProgGAP (ProGAP):
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
     def fit(self, data: Data, prefix: str = '') -> Metrics:
-        if data.num_edges != self.num_edges:
-            self.num_edges = data.num_edges
+        m = num_edges(data)
+        if self.num_edges != m:
+            self.num_edges = m
             self.calibrate()
 
         return super().fit(data, prefix=prefix)
