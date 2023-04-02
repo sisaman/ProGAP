@@ -1,23 +1,22 @@
-# GAP: Differentially Private Graph Neural Networks with Aggregation Perturbation
+# ProGAP: Progressive Graph Neural Networks with Differential Privacy Guarantees
 
 This repository is the official implementation of the paper:  
-[**GAP: Differentially Private Graph Neural Networks with Aggregation Perturbation**](https://arxiv.org/abs/2203.00949)   
-Accepted at USENIX Security 2023
+[**ProGAP: Progressive Graph Neural Networks with Differential Privacy Guarantees**]()   
+
 
 
 ## Requirements
 
-This code is implemented in Python 3.9 using PyTorch-Geometric 2.1.0 and PyTorch 1.12.1.
+This code is implemented in Python 3.10 using PyTorch-Geometric 2.3.0 and PyTorch 2.0.
 Refer to [requiresments.txt](./requirements.txt) to see the full list of dependencies.
 
 ## Notes
-1. The code includes a custom C++ operator for faster edge sampling required for the node-level DP methods. PyTorch will automatically build the C++ code at runtime, but you need to have a C++ compiler installed (usually it is handled automatically if you use conda).
 
-2. We use [Weights & Biases](https://docs.wandb.ai/) (WandB) to track the training progress and log experiment results. To replicate the results of the paper as described in the following, you need to have a WandB account. Otherwise, if you just want to train and evaluate the model, a WandB account is not required.
+1. We use [Weights & Biases](https://docs.wandb.ai/) (WandB) to track the training progress and log experiment results. To replicate the results of the paper as described in the following, you need to have a WandB account. Otherwise, if you just want to train and evaluate the model, a WandB account is not required.
 
-4. We use [Dask](https://jobqueue.dask.org/) to parallelize running multiple experiments on high-performance computing clusters (e.g., SGE, SLURM, etc). If you don't have access to a cluster, you can also simply run the experiments sequentially on your machine (see [usage section](#usage) below).
+2. We use [Dask](https://jobqueue.dask.org/) to parallelize running multiple experiments on high-performance computing clusters (e.g., SGE, SLURM, etc). If you don't have access to a cluster, you can also simply run the experiments sequentially on your machine (see [usage section](#usage) below).
 
-3. The code requires autodp version 0.2.1b or later. You can install the latest version directly from the [GitHub repository](https://github.com/yuxiangw/autodp) using: 
+3. The code requires `autodp` version 0.2.1b or later. You can install the latest version directly from the [GitHub repository](https://github.com/yuxiangw/autodp) using: 
     ```
     pip install git+https://github.com/yuxiangw/autodp
     ```
@@ -57,13 +56,13 @@ Run the following command to see the list of available options for training indi
 python train.py --help
 ``` 
 
-### Demo
+<!-- ### Demo
 
 <p align="center">
   <img width="600" src="https://i.imgur.com/ctveM6V.gif">
-</p>
+</p> -->
 
-## Results
+<!-- ## Results
 
 <center>
 
@@ -100,4 +99,4 @@ If you find this code useful, please cite the following paper:
   publisher = {USENIX Association},
   month = aug,
 }
-```
+``` -->
