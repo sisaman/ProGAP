@@ -32,11 +32,10 @@ class NodeLevelProGAP (ProGAP):
                  max_degree:    Annotated[int,   ArgInfo(help='max degree to sample per each node')] = 100,
                  max_grad_norm: Annotated[float, ArgInfo(help='maximum norm of the per-sample gradients')] = 1.0,
                  batch_size:    Annotated[int,   ArgInfo(help='batch size')] = 256,
-                 **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[ProGAP], exclude=['batch_norm'])]
+                 **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[ProGAP])]
                  ):
 
         super().__init__(num_classes, 
-            batch_norm=True,            # will be replaced with GroupNorm by ModuleValidator
             batch_size=batch_size, 
             **kwargs
         )
