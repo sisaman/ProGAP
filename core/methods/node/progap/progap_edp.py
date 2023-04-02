@@ -30,19 +30,22 @@ class EdgePrivProgGAP (ProGAP):
         self.nap = NAP(noise_std=0, sensitivity=1)
 
     def calibrate(self):
-        composed_mechanism = ComposedGaussianMechanism(
-            noise_scale=1.0,
-            mechanism_list=[self.nap.gm],
-            coeff_list=[self.num_stages - 1],
-        )
-        
         with console.status('calibrating noise to privacy budget'):
             if self.delta == 'auto':
                 console.info('num_edges = %d' % self.num_edges)
                 delta = 0.0 if np.isinf(self.epsilon) else 1. / (10 ** len(str(self.num_edges)))
                 console.info('delta = %.0e' % delta)
             
-            self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
+            if np.isinf(self.epsilon):
+                self.noise_scale = 0.0
+            else:
+                composed_mechanism = ComposedGaussianMechanism(
+                    noise_scale=1.0,
+                    mechanism_list=[self.nap.gm],
+                    coeff_list=[self.num_stages - 1],
+                )
+                self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
+            
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
     def fit(self, data: Data, prefix: str = '') -> Metrics:
