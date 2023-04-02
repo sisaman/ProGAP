@@ -15,7 +15,7 @@ jobqueue:
     cores: 1                                        # Total number of cores per job
     memory: 70GB                                    # Total amount of memory per job
     processes: 1                                    # Number of Python processes per job
-    local-directory: /idiap/temp/sajadmanesh        # Location of fast local storage like /scratch or $TMPDIR
+    local-directory: $TMPDIR                        # Location of fast local storage like /scratch or $TMPDIR
     worker-extra-args: ['--lifetime', '180m', '--lifetime-stagger', '10m']
     # interface: null                               # Network interface to use like eth0 or ib0
     # death-timeout: 60                             # Number of seconds to wait if a worker can not find a scheduler
