@@ -7,7 +7,7 @@ from core.jobutils.scheduler import JobScheduler, cluster_resolver
 from rich.progress import Progress
 
 
-def create_train_commands(registry: WandBJobRegistry) -> list[str]:
+def create_train_commands(registry: WandBJobRegistry):
     # ### Hyper-parameters
     datasets = [
         'facebook', 'reddit', 'amazon', 'facebook-100', 'wenet'
@@ -61,8 +61,9 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
     task = progress.add_task('generating jobs', total=None, registered=0)
 
     with progress:
-        # ### Accuracy/Privacy Trade-off
         for dataset in datasets:
+
+            # ### Accuracy/Privacy Trade-off
             for method in methods:
                 for level in levels:
                     # copy to avoid overwriting
@@ -81,10 +82,9 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                         **params, 
                     )
 
-                    progress.update(task, registered=len(registry.job_list))
+                    progress.update(task, registered=len(registry.df_job_cmds))
 
-        # ### Convergence
-        for dataset in datasets:
+            # ### Convergence
             for level in levels:
                 if level == 'none': continue
 
@@ -109,10 +109,9 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                     **params,
                 )
 
-                progress.update(task, registered=len(registry.job_list))
+                progress.update(task, registered=len(registry.df_job_cmds))
 
-        # ### Progressive vs. Layer-wise
-        for dataset in datasets:
+            # ### Progressive vs. Layer-wise
             for level in levels:
                 # copy to avoid overwriting
                 params = {**hparams[dataset, 'progap', level]}
@@ -140,9 +139,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                     **params,
                 )
 
-                progress.update(task, registered=len(registry.job_list))
-
-    return registry.job_list
+                progress.update(task, registered=len(registry.df_job_cmds))
 
 
 def generate(path: str):
@@ -157,8 +154,8 @@ def generate(path: str):
     registry = WandBJobRegistry(**wandb_config)
     registry.pull()
     create_train_commands(registry)
-    registry.save(path=path)
-    console.info(f'job file saved to [bold blue]{path}[/bold blue]')
+    num_jobs = registry.save(path=path)
+    console.info(f'[bold cyan]{num_jobs}[/bold cyan] jobs saved to [bold blue]{path}[/bold blue]')
 
 
 def run(job_file: str, scheduler_name: str) -> None:

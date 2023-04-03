@@ -17,7 +17,7 @@ class WandBJobRegistry:
     def __init__(self, entity, project):
         self.entity = entity
         self.project = project
-        self.job_list = []
+        self.df_job_cmds = pd.DataFrame()
         self.df_stored_jobs = pd.DataFrame()
 
     def pull(self):
@@ -37,7 +37,7 @@ class WandBJobRegistry:
             
             self.df_stored_jobs.drop_duplicates(inplace=True)
     
-    def register(self, main_file, method, level, **params) -> list[str]:
+    def register(self, main_file, method, level, **params):
         """Register jobs to the registry.
         This method will generate all possible combinations of the parameters and
         create a list of jobs to run. The job commands are stored in the registry
@@ -48,9 +48,6 @@ class WandBJobRegistry:
             method (str): Name of the method to run.
             level (str): Privacy level of the method.
             **params (dict): Dictionary of parameters to sweep over.
-
-        Returns:
-            list[str]: List of jobs to run.
         """
 
         # convert all values to tuples
@@ -73,42 +70,46 @@ class WandBJobRegistry:
             df_out_configs = df_out_configs[df_new_configs.columns]
 
         # generate job commands
-        jobs = []
-        configs = df_out_configs.to_dict('records')
-        for config in configs:
-            config.pop('method', None)
-            config.pop('level', None)
+        def make_cmd(row):
+            method = row['method']
+            level = row['level']
+            row = row.drop(['method', 'level'])
             args = f" {method} {level} "
-            options = ' '.join([f' --{param} {value} ' for param, value in config.items()])
+            options = ' '.join([f' --{param} {value} ' for param, value in row.items()])
             command = f'python {main_file} {args} {options} --logger wandb --project {self.project}'
             command = ' '.join(command.split())
-            jobs.append(command)
+            return command
 
-        self.job_list += jobs
-        return jobs
+        df_out_configs['cmd'] = df_out_configs.apply(make_cmd, axis=1)
+        self.df_job_cmds = pd.concat([self.df_job_cmds, df_out_configs], ignore_index=True)
 
-    def save(self, path: str, sort=False, shuffle=False):
+    def save(self, path: str, sort=False, shuffle=False) -> int:
         """Save the job list to a file.
 
         Args:
             path (str): Path to the file.
             sort (bool, optional): Sort the job list. Defaults to False.
             shuffle (bool, optional): Shuffle the job list. Defaults to False.
+
+        Returns:
+            int: Number of jobs saved.
         """
 
         assert not (sort and shuffle), 'cannot sort and shuffle at the same time'
 
         # remove duplicates
-        self.job_list = list(dict.fromkeys(self.job_list))
+        columns = self.df_job_cmds.columns.drop('cmd')
+        self.df_job_cmds.drop_duplicates(subset=columns, inplace=True)
+        job_cmds = self.df_job_cmds['cmd'].tolist()
 
         if sort:
-            jobs = sorted(self.job_list)
+            job_cmds = sorted(job_cmds)
         elif shuffle:
-            jobs = np.random.choice(self.job_list, len(self.job_list), replace=False)
-        else:
-            jobs = self.job_list
+            job_cmds = np.random.choice(job_cmds, len(job_cmds), replace=False)
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w') as file:
-            for item in jobs:
+            for item in job_cmds:
                 print(item, file=file)
+
+        return len(job_cmds)
