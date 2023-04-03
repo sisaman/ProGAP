@@ -17,41 +17,41 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
 
     methods = ['progap', 'gap']
     levels = ['none', 'edge', 'node']
-    hparams = {dataset: {method: {level: {} for level in levels} for method in methods} for dataset in datasets}
+    hparams = {(dataset, method, level): {} for dataset, method, level in product(datasets, methods, levels)}
 
     for dataset in datasets:
         # Default for all methods
         for method, level in product(methods, levels):
-            hparams[dataset][method][level]['hidden_dim'] = 16
-            hparams[dataset][method][level]['activation'] = 'selu'
-            hparams[dataset][method][level]['optimizer'] = 'adam'
-            hparams[dataset][method][level]['learning_rate'] = [0.01, 0.05]
-            hparams[dataset][method][level]['repeats'] = 10
-            hparams[dataset][method][level]['epochs'] = 100
-            hparams[dataset][method][level]['batch_size'] = 'full'
+            hparams[dataset, method, level]['hidden_dim'] = 16
+            hparams[dataset, method, level]['activation'] = 'selu'
+            hparams[dataset, method, level]['optimizer'] = 'adam'
+            hparams[dataset, method, level]['learning_rate'] = [0.01, 0.05]
+            hparams[dataset, method, level]['repeats'] = 10
+            hparams[dataset, method, level]['epochs'] = 100
+            hparams[dataset, method, level]['batch_size'] = 'full'
 
         # For ProGAP methods
         for level in levels:
-            hparams[dataset]['progap'][level]['base_layers'] = [1, 2]
-            hparams[dataset]['progap'][level]['head_layers'] = 1
-            hparams[dataset]['progap'][level]['jk'] = 'cat'
-            hparams[dataset]['progap'][level]['depth'] = [1, 2, 3, 4, 5]
-            hparams[dataset]['progap'][level]['layerwise'] = False
+            hparams[dataset, 'progap', level]['base_layers'] = [1, 2]
+            hparams[dataset, 'progap', level]['head_layers'] = 1
+            hparams[dataset, 'progap', level]['jk'] = 'cat'
+            hparams[dataset, 'progap', level]['depth'] = [1, 2, 3, 4, 5]
+            hparams[dataset, 'progap', level]['layerwise'] = False
         
         # For GAP methods
         for level in levels:
-            hparams[dataset]['gap'][level]['encoder_layers'] = 2
-            hparams[dataset]['gap'][level]['base_layers'] = 1
-            hparams[dataset]['gap'][level]['head_layers'] = 1
-            hparams[dataset]['gap'][level]['combine'] = 'cat'
-            hparams[dataset]['gap'][level]['hops'] = [1, 2, 3, 4, 5]
+            hparams[dataset, 'gap', level]['encoder_layers'] = 2
+            hparams[dataset, 'gap', level]['base_layers'] = 1
+            hparams[dataset, 'gap', level]['head_layers'] = 1
+            hparams[dataset, 'gap', level]['combine'] = 'cat'
+            hparams[dataset, 'gap', level]['hops'] = [1, 2, 3, 4, 5]
         
         # For node-level methods
         for method in methods:
-            hparams[dataset][method]['node']['max_degree'] = max_degree[dataset]
-            hparams[dataset][method]['node']['max_grad_norm'] = 1.0
-            hparams[dataset][method]['node']['epochs'] = [5, 10]
-            hparams[dataset][method]['node']['batch_size'] = batch_size[dataset]
+            hparams[dataset, method, 'node']['max_degree'] = max_degree[dataset]
+            hparams[dataset, method, 'node']['max_grad_norm'] = 1.0
+            hparams[dataset, method, 'node']['epochs'] = [5, 10]
+            hparams[dataset, method, 'node']['batch_size'] = batch_size[dataset]
 
     progress = Progress(
         *Progress.get_default_columns(),
@@ -65,7 +65,9 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
         for dataset in datasets:
             for method in methods:
                 for level in levels:
-                    params = hparams[dataset][method][level]
+                    # copy to avoid overwriting
+                    params = {**hparams[dataset, method, level]}
+                    
                     if level == 'node':
                         params['epsilon'] = [2, 4, 8, 16, 32]
                     elif level == 'edge':
@@ -86,7 +88,8 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
             for level in levels:
                 if level == 'none': continue
 
-                params = hparams[dataset]['progap'][level]
+                # copy to avoid overwriting
+                params = {**hparams[dataset, 'progap', level]}
                 params['repeats'] = 1
                 params['depth'] = 5
 
@@ -111,9 +114,8 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
         # ### Progressive vs. Layer-wise
         for dataset in datasets:
             for level in levels:
-                if level == 'none': continue
-
-                params = hparams[dataset]['progap'][level]
+                # copy to avoid overwriting
+                params = {**hparams[dataset, 'progap', level]}
                 
                 if level == 'node':
                     params['epsilon'] = 8
