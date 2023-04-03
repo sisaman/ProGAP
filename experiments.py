@@ -103,7 +103,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                 params['log_all'] = True
                 registry.register(
                     'train.py',
-                    method, 
+                    'progap', 
                     level,
                     dataset=dataset,
                     **params,
@@ -125,7 +125,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                 params['layerwise'] = True
                 registry.register(
                     'train.py',
-                    method, 
+                    'progap', 
                     level,
                     dataset=dataset,
                     **params,
@@ -134,7 +134,7 @@ def create_train_commands(registry: WandBJobRegistry) -> list[str]:
                 params['layerwise'] = False
                 registry.register(
                     'train.py',
-                    method, 
+                    'progap', 
                     level,
                     dataset=dataset,
                     **params,
