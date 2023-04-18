@@ -54,7 +54,7 @@ class ProGAP (NodeClassification):
         self.trainer.reset()
         self.data = None
 
-    def test(self, data: Optional[Data] = None, prefix: str = '') -> Metrics:
+    def test(self, data: Optional[Data] = None) -> Metrics:
         """Predict the labels for the given data, or the training data if data is None."""
         
         if data is None or data == self.data:
@@ -65,7 +65,6 @@ class ProGAP (NodeClassification):
 
         test_metics = self.trainer.test(
             dataloader=self.data_loader(data, 'test'),
-            prefix=prefix,
         )
 
         return test_metics
@@ -81,10 +80,10 @@ class ProGAP (NodeClassification):
         
         return self.model.predict(data)
 
-    def _train(self, data: Data, prefix: str = '') -> Metrics:
-        return self.pipeline(data, train=True, prefix=prefix)
+    def _train(self, data: Data) -> Metrics:
+        return self.pipeline(data, train=True)
 
-    def pipeline(self, data: Data, train: bool=False, prefix: str = '') -> Optional[Metrics]:
+    def pipeline(self, data: Data, train: bool=False) -> Optional[Metrics]:
         n = self.num_stages
         data.x0 = data.x
         self.model.set_stage(0)
@@ -109,7 +108,6 @@ class ProGAP (NodeClassification):
                     val_dataloader=self.data_loader(data, 'val'),
                     test_dataloader=self.data_loader(data, 'test') if globals['debug'] else None,
                     checkpoint=True,
-                    prefix=prefix,
                 )
 
         return metrics if train else None

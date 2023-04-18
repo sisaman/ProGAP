@@ -73,20 +73,20 @@ class GAP (NodeClassification):
         self._encoder.reset_parameters()
         super().reset_parameters()
 
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
+    def fit(self, data: Data) -> Metrics:
         self.data = data.to(self.device, non_blocking=True)
         
         # pre-train encoder
         if self.encoder_layers > 0:
-            self.data = self.pretrain_encoder(self.data, prefix=prefix)
+            self.data = self.pretrain_encoder(self.data)
 
         # compute aggregations
         self.data = self.compute_aggregations(self.data)
 
         # train classifier
-        return super().fit(self.data, prefix=prefix)
+        return super().fit(self.data)
 
-    def test(self, data: Optional[Data] = None, prefix: str = '') -> Metrics:
+    def test(self, data: Optional[Data] = None) -> Metrics:
         if data is None or data == self.data:
             data = self.data
         else:
@@ -94,7 +94,7 @@ class GAP (NodeClassification):
             data.x = self._encoder.predict(data)
             data = self.compute_aggregations(data)
 
-        return super().test(data, prefix=prefix)
+        return super().test(data)
 
     def predict(self, data: Optional[Data] = None) -> Tensor:
         if data is None or data == self.data:
@@ -111,7 +111,7 @@ class GAP (NodeClassification):
     def _normalize(self, x: Tensor) -> Tensor:
         return F.normalize(x, p=2, dim=-1)
 
-    def pretrain_encoder(self, data: Data, prefix: str) -> Data:
+    def pretrain_encoder(self, data: Data) -> Data:
         console.info('pretraining encoder')
         self._encoder.to(self.device)
         
@@ -123,7 +123,6 @@ class GAP (NodeClassification):
             val_dataloader=self.data_loader(data, 'val'),
             test_dataloader=None,
             checkpoint=True,
-            prefix=f'{prefix}encoder/',
         )
 
         self.trainer.reset()

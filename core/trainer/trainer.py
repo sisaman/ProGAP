@@ -71,12 +71,11 @@ class Trainer:
             val_dataloader: Optional[Iterable]=None, 
             test_dataloader: Optional[Iterable]=None, 
             checkpoint: bool=False,
-            prefix: str = ''
             ) -> Metrics:
 
         self.model = model
         self.optimizer = optimizer
-        monitor_key = f'{prefix}{self.monitor}'
+        monitor_key = f'{self.monitor}'
 
         if checkpoint:
             best_state_dict = None
@@ -100,16 +99,16 @@ class Trainer:
             num_epochs_without_improvement = 0
             
             for epoch in range(1, epochs + 1):
-                metrics = {f'{prefix}epoch': epoch}
+                metrics = {f'epoch': epoch}
 
                 # train loop
-                train_metrics = self.loop(train_dataloader, phase='train', prefix=prefix)
+                train_metrics = self.loop(train_dataloader, phase='train')
                 metrics.update(train_metrics)
                     
                 # validation loop
                 if val_dataloader and self.val_interval and epoch % self.val_interval == 0:
 
-                    val_metrics = self.loop(val_dataloader, phase='val', prefix=prefix)
+                    val_metrics = self.loop(val_dataloader, phase='val')
                     metrics.update(val_metrics)
 
                     if best_metrics is None or self.is_better(metrics[monitor_key], best_metrics[monitor_key]):
@@ -125,7 +124,7 @@ class Trainer:
 
                 # test loop
                 if test_dataloader:
-                    test_metrics = self.loop(test_dataloader, phase='test', prefix=prefix)
+                    test_metrics = self.loop(test_dataloader, phase='test')
                     metrics.update(test_metrics)
 
                 # log and update progress
@@ -143,17 +142,17 @@ class Trainer:
         Logger.get_instance().log_summary(best_metrics)
         return best_metrics
 
-    def test(self, dataloader: Iterable, prefix: str = '') -> Metrics:
+    def test(self, dataloader: Iterable) -> Metrics:
         self.metrics.clear()
-        metrics = self.loop(dataloader, phase='test', prefix=prefix)
+        metrics = self.loop(dataloader, phase='test')
         return metrics
 
-    def loop(self, dataloader: Iterable, phase: Phase, prefix: str) -> Metrics:
+    def loop(self, dataloader: Iterable, phase: Phase) -> Metrics:
         self.model.train(phase == 'train')
         self.progress.update(phase, visible=len(dataloader) > 1)
 
         for batch in dataloader:
-            metrics = self.step(batch, phase, prefix)
+            metrics = self.step(batch, phase)
             for item in metrics:
                 self.update_metrics(item, metrics[item], weight=len(batch))
             self.progress.update(phase, advance=1)
@@ -161,7 +160,7 @@ class Trainer:
         self.progress.reset(phase, visible=False)
         return self.aggregate_metrics(phase)
 
-    def step(self, batch, phase: Phase, prefix: str) -> Metrics:
+    def step(self, batch, phase: Phase) -> Metrics:
         if phase == 'train':
             self.optimizer.zero_grad(set_to_none=True)
 
@@ -174,4 +173,4 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
-        return {f'{prefix}{phase}/{key}': value for key, value in metrics.items()}
+        return {f'{phase}/{key}': value for key, value in metrics.items()}

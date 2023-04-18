@@ -85,7 +85,7 @@ class NodeLevelProGAP (ProGAP):
         super().set_stage(stage)
         self.noisy_sgd.prepare_module(self.model)
 
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
+    def fit(self, data: Data) -> Metrics:
         num_train_nodes = data.train_mask.sum().item()
 
         if num_train_nodes != self.num_train_nodes:
@@ -95,7 +95,7 @@ class NodeLevelProGAP (ProGAP):
         with console.status('bounding the number of neighbors per node'):
             data = BoundOutDegree(self.max_degree)(data)
 
-        return super().fit(data, prefix=prefix)
+        return super().fit(data)
 
     def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
         dataloader = super().data_loader(data, phase)

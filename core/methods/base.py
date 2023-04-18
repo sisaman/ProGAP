@@ -51,14 +51,14 @@ class NodeClassification:
         self.trainer.reset()
         self.data = None
 
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
+    def fit(self, data: Data) -> Metrics:
         """Fit the model to the given data."""
         self.data = data.to(self.device, non_blocking=True)
-        train_metrics = self._train(self.data, prefix=prefix)
-        test_metrics = self.test(self.data, prefix=prefix)
+        train_metrics = self._train(self.data)
+        test_metrics = self.test(self.data)
         return {**train_metrics, **test_metrics}
 
-    def test(self, data: Optional[Data] = None, prefix: str = '') -> Metrics:
+    def test(self, data: Optional[Data] = None) -> Metrics:
         """Predict the labels for the given data, or the training data if data is None."""
         if data is None:
             data = self.data
@@ -67,7 +67,6 @@ class NodeClassification:
 
         test_metics = self.trainer.test(
             dataloader=self.data_loader(data, 'test'),
-            prefix=prefix,
         )
 
         return test_metics
@@ -80,7 +79,7 @@ class NodeClassification:
         data = data.to(self.device, non_blocking=True)
         return self.classifier.predict(data)
 
-    def _train(self, data: Data, prefix: str = '') -> Metrics:
+    def _train(self, data: Data) -> Metrics:
         console.info('training classifier')
         self.classifier.to(self.device)
 
@@ -92,7 +91,6 @@ class NodeClassification:
             val_dataloader=self.data_loader(data, 'val'),
             test_dataloader=self.data_loader(data, 'test') if globals['debug'] else None,
             checkpoint=True,
-            prefix=prefix,
         )
 
         return metrics
