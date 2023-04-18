@@ -16,7 +16,7 @@ with console.status('importing modules'):
     from core.methods.registry import supported_methods
     from core.utils import confidence_interval
     from torch_geometric.data import Data
-    from torch_geometric import seed_everything
+    from lightning import seed_everything
 
 
 def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
