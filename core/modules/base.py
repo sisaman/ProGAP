@@ -1,13 +1,10 @@
-from typing import Literal, Optional
+from typing import Optional
 from torch import Tensor
 from torch.nn import Module
-from torch.types import Number
 from torch_geometric.data import Data
 from abc import ABC, abstractmethod
+from core.typing import Metrics, Phase
 
-
-Phase = Literal['train', 'val', 'test']
-Metrics = dict[str, Number]
 
 
 class TrainableModule(Module, ABC):
