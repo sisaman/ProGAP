@@ -36,8 +36,8 @@ class Model(pl.LightningModule):
         return self.gnn(x, adj_t)
 
     def training_step(self, data, batch_idx):
-        y_hat = self(data.x, data.adj_t)[data.train_mask]
-        y = data.y[data.train_mask]
+        y_hat = self(data.x, data.adj_t)[data.batch_nodes]
+        y = data.y[data.batch_nodes]
         loss = F.cross_entropy(y_hat, y)
         self.train_acc(y_hat.softmax(dim=-1), y)
         self.log('train_acc', self.train_acc, prog_bar=True, on_step=False,
@@ -52,15 +52,15 @@ class Model(pl.LightningModule):
             metric = 'test_acc'
             acc = self.test_acc
             
-        y_hat = self(data.x, data.adj_t)[data.val_mask]
-        y = data.y[data.val_mask]
+        y_hat = self(data.x, data.adj_t)[data.batch_nodes]
+        y = data.y[data.batch_nodes]
         acc(y_hat.softmax(dim=-1), y)
         self.log(metric, acc, prog_bar=True, on_step=False,
                  on_epoch=True, add_dataloader_idx=False)
 
     def test_step(self, data, batch_idx):
-        y_hat = self(data.x, data.adj_t)[data.test_mask]
-        y = data.y[data.test_mask]
+        y_hat = self(data.x, data.adj_t)[data.batch_nodes]
+        y = data.y[data.batch_nodes]
         self.final_acc(y_hat.softmax(dim=-1), y)
         self.log('final_test_acc', self.final_acc, prog_bar=True, on_step=False,
                  on_epoch=True)
@@ -89,10 +89,10 @@ if __name__ == '__main__':
 
     data = DatasetLoader('facebook').load()
 
-    train_dataloader = NodeDataLoader(data=data, phase='train')
-    val_dataloader = NodeDataLoader(data=data, phase='val')
-    test_dataloader = NodeDataLoader(data=data, phase='test')
-    final_dataloader = NodeDataLoader(data=data, phase='test')
+    train_dataloader = NodeDataLoader(data=data, subset=data.train_mask)
+    val_dataloader = NodeDataLoader(data=data, subset=data.val_mask)
+    test_dataloader = NodeDataLoader(data=data, subset=data.test_mask)
+    final_dataloader = NodeDataLoader(data=data, subset=data.test_mask)
 
     num_classes = data.y.max().item() + 1
     model = Model(data.num_features, num_classes)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     start = time.time()
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=[val_dataloader, test_dataloader])
-    trainer.test(ckpt_path='best', dataloaders=test_dataloader)
+    trainer.test(ckpt_path='best', dataloaders=final_dataloader)
     end = time.time()
     duration = end - start
     # logger.log_metrics({'duration': duration})
