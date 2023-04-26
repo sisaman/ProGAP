@@ -43,7 +43,7 @@ class NodeDataLoader:
                  drop_last: bool = False, 
                  poisson_sampling: bool = False):
 
-        self.data = data
+        self.data = Data(**data.to_dict())
         self.batch_size = batch_size
         self.hops = hops
         self.shuffle = shuffle
@@ -67,9 +67,8 @@ class NodeDataLoader:
 
     def __iter__(self) -> Iterator[Data]:
         if self.batch_size == 'full':
-            data = Data(**self.data.to_dict())
-            data.batch_nodes = self.node_indices
-            yield data
+            self.data.batch_nodes = self.node_indices
+            yield self.data
             return
 
         if self.shuffle and not self.poisson_sampling:
@@ -88,7 +87,7 @@ class NodeDataLoader:
                 batch_nodes = self.node_indices[i:i + self.batch_size]
 
             if self.hops is None:
-                data = Data(**self.data.to_dict())
+                data = self.data
                 data.batch_nodes = batch_nodes
             else:
                 subset, batch_edge_index, mapping, _ = k_hop_subgraph(
@@ -102,14 +101,12 @@ class NodeDataLoader:
                 batch_mask = torch.zeros(subset.size(0), device=self.device, dtype=torch.bool)
                 batch_mask[mapping] = True
 
-                data = Data(
-                    x=self.data.x[subset],
-                    y=self.data.y[subset],
-                    edge_index=batch_edge_index,
-                )
+                data = self.data.subgraph(subset)
+                data.edge_index = batch_edge_index
                 data.batch_nodes = mapping
                 
                 if self.is_sparse:
+                    del data.adj_t
                     data = ToSparseTensor(layout=torch.sparse_csr)(data)
             
             yield data
