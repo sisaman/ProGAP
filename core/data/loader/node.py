@@ -1,10 +1,10 @@
 from typing import Literal, Optional, Union
 import torch
+from torch import Tensor
 from collections.abc import Iterator
 from torch_geometric.data import Data
-from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.utils import k_hop_subgraph, to_edge_index
 from torch_geometric.transforms import ToSparseTensor
-from core.modules.base import Phase
 
 
 class NodeDataLoader:
@@ -20,7 +20,8 @@ class NodeDataLoader:
 
     Args:
         data (Data): The graph data object.
-        phase (Phase): Training phase. One of 'train', 'val', 'test'.
+        subset (LongTensor or BoolTensor, optional): The subset of nodes to use for batching.
+            If set to None, all nodes are used. (default: None)
         batch_size (int or 'full', optional): The batch size.
             If set to 'full', the entire graph is used as a single batch.
             (default: 'full')
@@ -35,7 +36,7 @@ class NodeDataLoader:
     """
     def __init__(self, 
                  data: Data, 
-                 phase: Phase,
+                 subset: Optional[Tensor] = None,
                  batch_size: Union[int, Literal['full']] = 'full', 
                  hops: Optional[int] = None,
                  shuffle: bool = True, 
@@ -43,7 +44,6 @@ class NodeDataLoader:
                  poisson_sampling: bool = False):
 
         self.data = data
-        self.phase = phase
         self.batch_size = batch_size
         self.hops = hops
         self.shuffle = shuffle
@@ -51,13 +51,25 @@ class NodeDataLoader:
         self.poisson_sampling = poisson_sampling
         self.device = data.x.device
 
-        if batch_size != 'full':
-            self.node_indices = data[f'{phase}_mask'].nonzero().view(-1)
-            self.num_nodes = self.node_indices.size(0)
+        if subset is None:
+            self.node_indices = torch.arange(data.num_nodes, device=self.device)
+        else:
+            if subset.dtype == torch.bool:
+                self.node_indices = subset.nonzero().view(-1)
+            else:
+                self.node_indices = subset
+        
+        self.num_nodes = self.node_indices.size(0)
+        self.is_sparse = not hasattr(data, 'edge_index')
+
+        if not self.is_sparse and self.hops is not None and self.batch_size != 'full':
+            self.edge_index = to_edge_index(self.data.adj_t)
 
     def __iter__(self) -> Iterator[Data]:
         if self.batch_size == 'full':
-            yield self.data
+            data = Data(**self.data.to_dict())
+            data.batch_nodes = self.node_indices
+            yield data
             return
 
         if self.shuffle and not self.poisson_sampling:
@@ -76,15 +88,9 @@ class NodeDataLoader:
                 batch_nodes = self.node_indices[i:i + self.batch_size]
 
             if self.hops is None:
-                batch_mask = torch.zeros(self.data.num_nodes, device=self.device, dtype=torch.bool)
-                batch_mask[batch_nodes] = True
-
                 data = Data(**self.data.to_dict())
-                data[f'{self.phase}_mask'] = data[f'{self.phase}_mask'] & batch_mask
+                data.batch_nodes = batch_nodes
             else:
-                if not hasattr(self, 'edge_index'):
-                    self.edge_index = torch.stack(self.data.adj_t.t().coo()[:2], dim=0)
-
                 subset, batch_edge_index, mapping, _ = k_hop_subgraph(
                     node_idx=batch_nodes, 
                     num_hops=self.hops, 
@@ -101,8 +107,10 @@ class NodeDataLoader:
                     y=self.data.y[subset],
                     edge_index=batch_edge_index,
                 )
-                data[f'{self.phase}_mask'] = batch_mask
-                data = ToSparseTensor(layout=torch.sparse_csr)(data)
+                data.batch_nodes = mapping
+                
+                if self.is_sparse:
+                    data = ToSparseTensor(layout=torch.sparse_csr)(data)
             
             yield data
             

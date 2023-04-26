@@ -113,7 +113,7 @@ class NodeClassification:
         batch_size = 'full' if (phase != 'train' and self.full_batch_eval) else self.batch_size
         dataloader = NodeDataLoader(
             data=data, 
-            phase=phase,
+            subset=data[f'{phase}_mask'],
             batch_size=batch_size, 
             shuffle=(phase == 'train'), 
             drop_last=True,
