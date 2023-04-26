@@ -29,6 +29,7 @@ def create_train_commands(registry: WandBJobRegistry):
             hparams[dataset, method, level]['repeats'] = 10
             hparams[dataset, method, level]['epochs'] = 100
             hparams[dataset, method, level]['batch_size'] = 'full'
+            hparams[dataset, method, level]['verbose'] = False
 
         # For ProGAP methods
         for level in levels:

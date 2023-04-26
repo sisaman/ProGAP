@@ -16,7 +16,7 @@ class Trainer:
                  monitor:       str = 'val/acc',
                  monitor_mode:  Literal['min', 'max'] = 'max',
                  val_interval:  Annotated[int, ArgInfo(help='interval of validation')] = 1,
-                 verbose:       Annotated[bool, ArgInfo(help='display progress')] = False,
+                 verbose:       Annotated[bool, ArgInfo(help='display progress')] = True,
                  ):
 
         assert monitor_mode in ['min', 'max']
