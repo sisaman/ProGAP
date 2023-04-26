@@ -33,8 +33,7 @@ class MLPNodeClassifier(TrainableModule):
         return self.model(x)
 
     def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
-        mask = data[f'{phase}_mask']
-        x, y = data.x[mask], data.y[mask]
+        x, y = data.x[data.batch_nodes], data.y[data.batch_nodes]
         preds = F.log_softmax(self(x), dim=-1)
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
         metrics = {'acc': acc}

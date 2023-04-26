@@ -109,9 +109,8 @@ class ProgressiveModule(TrainableModule):
         return h, y
 
     def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
-        mask = data[f'{phase}_mask']
-        xs = [data[f'x{i}'][mask] for i in range(self.current_stage + 1)]
-        y = data.y[mask]
+        xs = [data[f'x{i}'][data.batch_nodes] for i in range(self.current_stage + 1)]
+        y = data.y[data.batch_nodes]
         
         preds: Tensor = self(xs)[1]
         acc = preds.argmax(dim=1).eq(y).float().mean() * 100
