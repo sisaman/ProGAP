@@ -5,7 +5,6 @@ from typing import Annotated, Literal, Union
 from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
-from core.data.utils import num_edges
 from core.methods.gap.base import GAP
 from core.privacy.algorithms.pma import PMA
 from core.modules.base import Metrics
@@ -40,7 +39,7 @@ class EdgeLevelGAP (GAP):
 
 
     def fit(self, data: Data) -> Metrics:
-        m = num_edges(data)
+        m = data.num_edges
         if self.num_edges != m:
             self.num_edges = m
             self.calibrate()

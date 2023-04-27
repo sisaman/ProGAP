@@ -10,7 +10,6 @@ from core.args.utils import ArgInfo
 from core.data.transforms.filter_class import FilterClassByCount
 from core.data.transforms.remove_self_loops import RemoveSelfLoops
 from core.data.transforms.remove_isolated_nodes import RemoveIsolatedNodes
-from core.data.utils import num_edges
 from core.datasets.amazon import Amazon
 from core.datasets.facebook import Facebook
 from core.datasets.facebook import Facebook100
@@ -83,7 +82,7 @@ class DatasetLoader:
 
         stat = {
             'nodes': f'{data.num_nodes:,}',
-            'edges': f'{num_edges(data):,}',
+            'edges': f'{data.num_edges:,}',
             'features': f'{data.num_features:,}',
             'classes': f'{int(data.y.max() + 1)}',
             'mean degree': f'{nodes_degree.mean():.2f}',
