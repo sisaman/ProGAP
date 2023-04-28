@@ -10,6 +10,14 @@ from torch_geometric.transforms import ToSparseTensor
 class NodeDataLoader:
     """ A fast dataloader for node-wise training.
 
+    We have three settings:
+    1. batch_size = 'full', hops = None
+        The entire graph is used as a single batch.
+    2. batch_size = int, hops = None
+        The entire graph is returned at every iteration with a new phase mask corresponding to the nodes in the batch.
+    3. batch_size = int, hops = int
+        The k-hop subgraph is returned at every iteration corresponding to the nodes in the batch.
+
     Args:
         data (Data): The graph data object.
         subset (LongTensor or BoolTensor, optional): The subset of nodes to use for batching.
