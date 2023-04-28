@@ -3,9 +3,10 @@ import torch
 from torch.types import Number
 from torch.optim import Optimizer
 from typing import Annotated, Iterable, Literal, Optional
+from core import globals
 from core.args.utils import ArgInfo
-from core.loggers.factory import Logger
 from torchmetrics import MeanMetric
+from core.loggers.logger import Logger
 from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, Phase, TrainableModule
 
@@ -78,6 +79,8 @@ class Trainer:
         self.optimizer = optimizer
         monitor_key = f'{prefix}{self.monitor}'
 
+        logger: Logger = globals['logger']
+
         if checkpoint:
             best_state_dict = None
 
@@ -129,7 +132,7 @@ class Trainer:
                     metrics.update(test_metrics)
 
                 # log and update progress
-                Logger.get_instance().log(metrics)
+                logger.log(metrics)
                 self.progress.update(task='epoch', metrics=metrics, advance=1)
 
         if best_metrics is None:
@@ -140,7 +143,7 @@ class Trainer:
                 self.model.load_state_dict(best_state_dict)
 
         # log and return best metrics
-        Logger.get_instance().log_summary(best_metrics)
+        logger.log_summary(best_metrics)
         return best_metrics
 
     def test(self, dataloader: Iterable, prefix: str = '') -> Metrics:
@@ -155,7 +158,7 @@ class Trainer:
         for batch in dataloader:
             metrics = self.step(batch, phase, prefix)
             for item in metrics:
-                self.update_metrics(item, metrics[item], weight=len(batch))
+                self.update_metrics(item, metrics[item], weight=batch.batch_nodes.size(0))
             self.progress.update(phase, advance=1)
 
         self.progress.reset(phase, visible=False)

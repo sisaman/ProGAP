@@ -1,36 +1,12 @@
-import functools
-from typing import Annotated, Callable, TypeVar
+from typing import Annotated
 from uuid import uuid1
 from abc import ABC, abstractmethod
 from torch.nn import Module
 from core.args.utils import ArgInfo
 
 
-RT = TypeVar('RT')
-
-
-def if_enabled(func: Callable[..., RT]) -> Callable[..., RT]:
-    @functools.wraps(func)
-    def wrapper(self: LoggerBase, *args, **kwargs) -> RT:
-        if self.enabled:
-            return func(self, *args, **kwargs)
-    return wrapper
-
 
 class LoggerBase(ABC):
-    def __init__(self, 
-                 project:       Annotated[str,  ArgInfo(help="project name for logger")] = 'ProGAP',
-                 output_dir:    Annotated[str,  ArgInfo(help="directory to store the results")] = './output',
-                 experiment_id: str=str(uuid1()), 
-                 enabled:       bool=True, 
-                 config:        dict={}
-                 ):
-        self.project = project
-        self.experiment_id = experiment_id
-        self.output_dir = output_dir
-        self.enabled = enabled
-        self.config = config
-
     @property
     @abstractmethod
     def experiment(self): pass
@@ -46,9 +22,3 @@ class LoggerBase(ABC):
     
     @abstractmethod
     def finish(self): pass
-
-    def enable(self): 
-        self.enabled = True
-
-    def disable(self): 
-        self.enabled = False

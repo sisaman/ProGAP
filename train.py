@@ -1,4 +1,4 @@
-from core import console
+from core import console, setup_console_logging
 with console.status('importing modules'):
     import torch
     import numpy as np
@@ -11,7 +11,7 @@ with console.status('importing modules'):
     from core.datasets.loader import DatasetLoader
     from core.args.utils import print_args, create_arguments, strip_kwargs, ArgInfo
     from core.args.formatter import ArgumentDefaultsRichHelpFormatter
-    from core.loggers.factory import Logger
+    from core.loggers.logger import Logger
     from core.methods.base import NodeClassification
     from core.methods.registry import supported_methods
     from core.utils import confidence_interval
@@ -19,10 +19,9 @@ with console.status('importing modules'):
     from torch_geometric import seed_everything
 
 
-def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
-        repeats: Annotated[int,   ArgInfo(help='number of times the experiment is repeated')] = 1,
-        log_all: Annotated[bool,  ArgInfo(help='log all training steps')] = False,
-        debug:   Annotated[bool,  ArgInfo(help='enable global debug mode')] = False,
+def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
+        repeats:     Annotated[int,   ArgInfo(help='number of times the experiment is repeated')] = 1,
+        debug:       Annotated[bool,  ArgInfo(help='enable global debug mode')] = False,
         **kwargs
     ):
 
@@ -33,16 +32,17 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
         globals['debug'] = True
         console.log_level = console.DEBUG
 
+    ### setup logger ###
+    logger_args = strip_kwargs(Logger, kwargs)
+    logger = Logger(config=kwargs, debug=debug, **logger_args)
+    globals['logger'] = logger
+
     with console.status('loading dataset'):
         loader_args = strip_kwargs(DatasetLoader, kwargs)
         data_initial = DatasetLoader(**loader_args).load(verbose=True)
 
-    num_classes = data_initial.y.max().item() + 1
-    config = dict(**kwargs, seed=seed, repeats=repeats, log_all=log_all)
-    logger_args = strip_kwargs(Logger.setup, kwargs)
-    logger = Logger.setup(enabled=log_all, config=config, **logger_args)
-
     ### initiallize method ###
+    num_classes = data_initial.y.max().item() + 1
     Method = supported_methods[kwargs['method']][kwargs['level']]
     method_args = strip_kwargs(Method, kwargs)
     method: NodeClassification = Method(num_classes=num_classes, **method_args)
@@ -75,7 +75,7 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
         ### reset method's parameters for the next run ###
         method.reset_parameters()
 
-    logger.enable()
+    logger: Logger = globals['logger']
     summary = {}
     
     for metric, values in run_metrics.items():
@@ -89,6 +89,7 @@ def run(seed:    Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
 
 
 def main():
+    setup_console_logging()
     init_parser = ArgumentParser(add_help=False, conflict_handler='resolve')
     method_subparser = init_parser.add_subparsers(dest='method', required=True, title='algorithm')
 
@@ -119,7 +120,7 @@ def main():
             # experiment args
             group_expr = level_parser.add_argument_group('experiment arguments')
             create_arguments(run, group_expr)
-            create_arguments(Logger.setup, group_expr)
+            create_arguments(Logger, group_expr)
 
     parser = ArgumentParser(parents=[init_parser], formatter_class=ArgumentDefaultsRichHelpFormatter)
     kwargs = vars(parser.parse_args())
