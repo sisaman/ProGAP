@@ -4,30 +4,14 @@
 # from rich.table import Column, Table
 # from core.modules.base import Metrics
 from core import console
+import lightning.pytorch as pl
 # from rich.progress import Progress, SpinnerColumn, BarColumn, TimeElapsedColumn, Task
 # from rich.highlighter import ReprHighlighter
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBar, MetricsTextColumn, CustomProgress
 
 
 class TrainerProgress(RichProgressBar):
-    def _init_progress(self, trainer: "pl.Trainer") -> None:
-        if self.is_enabled and (self.progress is None or self._progress_stopped):
-            self._reset_progress_bar_ids()
-            # reconfigure(**self._console_kwargs)
-            # self._console = get_console()
-            self._console = console
-            self._console.clear_live()
-            self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
-            self.progress = CustomProgress(
-                *self.configure_columns(trainer),
-                self._metric_component,
-                auto_refresh=False,
-                disable=self.is_disabled,
-                console=self._console,
-            )
-            self.progress.start()
-            # progress has started
-            self._progress_stopped = False
+    pass
 
     # def __init__(self, 
     #              num_epochs: int, 

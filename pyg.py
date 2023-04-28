@@ -1,5 +1,4 @@
 import time
-import os.path as osp
 
 import lightning.pytorch as pl
 import torch
@@ -7,15 +6,15 @@ import torch.nn.functional as F
 from torch.nn import BatchNorm1d
 from torchmetrics import Accuracy
 
-from torch_geometric.data.lightning import LightningNodeData
-from torch_geometric.datasets import Reddit
 from torch_geometric.nn import GraphSAGE
 from lightning.pytorch.callbacks import ModelCheckpoint, RichProgressBar
-from lightning.pytorch.strategies import SingleDeviceStrategy
-from core.datasets.loader import DatasetLoader
 from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.plugins import CheckpointIO
+
+
+from core import console
+from core.datasets.loader import DatasetLoader
 from core.data.loader.node import NodeDataLoader
+from core.trainer.checkpoint import InMemoryCheckpoint
 
 
 class Model(pl.LightningModule):
@@ -30,7 +29,6 @@ class Model(pl.LightningModule):
         self.train_acc = Accuracy(task='multiclass', num_classes=out_channels)
         self.val_acc = Accuracy(task='multiclass', num_classes=out_channels)
         self.test_acc = Accuracy(task='multiclass', num_classes=out_channels)
-        self.final_acc = Accuracy(task='multiclass', num_classes=out_channels)
 
     def forward(self, x, adj_t):
         return self.gnn(x, adj_t)
@@ -61,27 +59,12 @@ class Model(pl.LightningModule):
     def test_step(self, data, batch_idx):
         y_hat = self(data.x, data.adj_t)[data.batch_nodes]
         y = data.y[data.batch_nodes]
-        self.final_acc(y_hat.softmax(dim=-1), y)
-        self.log('final_test_acc', self.final_acc, prog_bar=True, on_step=False,
+        self.test_acc(y_hat.softmax(dim=-1), y)
+        self.log('final_test_acc', self.test_acc, prog_bar=True, on_step=False,
                  on_epoch=True)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.01)
-
-
-class InMemoryCheckpoint(CheckpointIO):
-    def __init__(self) -> None:
-        super().__init__()
-        self.checkpoint_dict = {}
-
-    def load_checkpoint(self, path, map_location = None):
-        return self.checkpoint_dict[path]
-    
-    def save_checkpoint(self, checkpoint, path, storage_options = None):
-        self.checkpoint_dict[path] = checkpoint
-
-    def remove_checkpoint(self, path):
-        del self.checkpoint_dict[path]
 
 
 if __name__ == '__main__':
@@ -92,22 +75,22 @@ if __name__ == '__main__':
     train_dataloader = NodeDataLoader(data=data, subset=data.train_mask)
     val_dataloader = NodeDataLoader(data=data, subset=data.val_mask)
     test_dataloader = NodeDataLoader(data=data, subset=data.test_mask)
-    final_dataloader = NodeDataLoader(data=data, subset=data.test_mask)
 
     num_classes = data.y.max().item() + 1
     model = Model(data.num_features, num_classes)
     checkpoint = ModelCheckpoint(monitor='val_acc', save_top_k=1, mode='max', dirpath='checkpoints')
-    # logger = WandbLogger()
+    checkpoint_plugin = InMemoryCheckpoint()
+    logger = WandbLogger()
 
-    trainer = pl.Trainer(devices=1, max_epochs=5, callbacks=[checkpoint, RichProgressBar()], deterministic=True, accelerator='cpu',
-                        #  logger=WandbLogger(), 
+    trainer = pl.Trainer(devices=1, max_epochs=100, callbacks=[checkpoint, RichProgressBar()], deterministic=True, accelerator='gpu',
+                         logger=logger, 
                          plugins=InMemoryCheckpoint(), 
                          log_every_n_steps=1)
 
     start = time.time()
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=[val_dataloader, test_dataloader])
-    trainer.test(ckpt_path='best', dataloaders=final_dataloader)
+    trainer.test(ckpt_path='best', dataloaders=test_dataloader)
+    
     end = time.time()
     duration = end - start
-    # logger.log_metrics({'duration': duration})
-    print(checkpoint.best_model_path)
+    logger.log_metrics({'duration': duration})

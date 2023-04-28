@@ -77,8 +77,8 @@ class NodeLevelGAP (GAP):
             self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-        self._encoder = self.encoder_noisy_sgd.prepare_module(self._encoder)
-        self._classifier = self.classifier_noisy_sgd.prepare_module(self._classifier)
+        self.encoder_noisy_sgd.prepare_lightning_module(self.encoder)
+        self.classifier_noisy_sgd.prepare_lightning_module(self.classifier)
 
     def fit(self, data: Data) -> Metrics:
         num_train_nodes = data.train_mask.sum().item()
@@ -105,12 +105,3 @@ class NodeLevelGAP (GAP):
             dataloader.poisson_sampling = True
         return dataloader
 
-    def configure_optimizer(self) -> DPOptimizer:
-        optimizer = super().configure_optimizer()
-        optimizer = self.classifier_noisy_sgd.prepare_optimizer(optimizer)
-        return optimizer
-
-    def configure_encoder_optimizer(self) -> DPOptimizer:
-        optimizer = super().configure_encoder_optimizer()
-        optimizer = self.encoder_noisy_sgd.prepare_optimizer(optimizer)
-        return optimizer

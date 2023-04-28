@@ -1,4 +1,4 @@
-from typing import TypeVar
+from lightning import LightningModule
 from opacus.privacy_engine import forbid_accumulation_hook
 from opacus.grad_sample import GradSampleModule
 from opacus.optimizers import DPOptimizer
@@ -9,7 +9,6 @@ from core.data.loader.node import NodeDataLoader
 from core.privacy.mechanisms.commons import GaussianMechanism, InfMechanism, ZeroMechanism
 from core.privacy.mechanisms.noisy import NoisyMechanism
 
-T = TypeVar('T', bound=Module)
 
 class NoisySGD(NoisyMechanism):
     def __init__(self, noise_scale: float, dataset_size: int, batch_size: int, epochs: int, max_grad_norm: float):
@@ -37,20 +36,13 @@ class NoisySGD(NoisyMechanism):
         
         self.set_all_representation(mech)
 
-    def __call__(self, module: T, optimizer: Optimizer, dataloader: NodeDataLoader) -> tuple[T, Optimizer, NodeDataLoader]:
-        module = self.prepare_module(module)
-        dataloader = self.prepare_dataloader(dataloader)
-        optimizer = self.prepare_optimizer(optimizer)
-        return module, optimizer, dataloader
-
-    def prepare_module(self, module: T) -> T:
+    def prepare_module(self, module: Module) -> None:
         if self.params['noise_scale'] > 0.0 and self.params['epochs'] > 0:
             if hasattr(module, 'autograd_grad_sample_hooks'):
                 for hook in module.autograd_grad_sample_hooks:
                     hook.remove()
                 del module.autograd_grad_sample_hooks
             GradSampleModule(module).register_full_backward_hook(forbid_accumulation_hook)
-        return module
 
     def prepare_dataloader(self, dataloader: NodeDataLoader) -> NodeDataLoader:
         if self.params['noise_scale'] > 0.0 and self.params['epochs'] > 0:
@@ -66,3 +58,9 @@ class NoisySGD(NoisyMechanism):
                 expected_batch_size=self.params['batch_size'],
             )
         return optimizer
+    
+    def prepare_lightning_module(self, module: LightningModule) -> None:
+        self.prepare_module(module)
+        if not hasattr(module, 'original_configure_optimizers'):
+            module.original_configure_optimizers = module.configure_optimizers
+            module.configure_optimizers = lambda: self.prepare_optimizer(module.original_configure_optimizers())
