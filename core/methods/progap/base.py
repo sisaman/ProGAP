@@ -87,7 +87,7 @@ class ProGAP (NodeClassification):
     def pipeline(self, data: Data, train: bool=False, prefix: str = '') -> Optional[Metrics]:
         n = self.num_stages
         data.x0 = data.x
-        self.model.set_stage(0)
+        self.set_stage(0)
         
         for i in range(n):
             if i > 0:
