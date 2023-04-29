@@ -1,1 +1,1 @@
-python train.py gap edge --dataset facebook --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.05 --repeats 1 --epochs 100 --batch_size full --encoder_layers 2 --base_layers 1 --head_layers 1 --combine cat --hops 3 --epsilon 4.0 $@
+python train.py gap edge --dataset facebook --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.01 --repeats 1 --epochs 100 --batch_size full --encoder_layers 2 --base_layers 1 --head_layers 1 --combine cat --hops 2 --epsilon 1.0 $@
