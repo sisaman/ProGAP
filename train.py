@@ -35,7 +35,7 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
     with console.status('loading dataset'):
         loader_args = strip_kwargs(DatasetLoader, kwargs)
         data_initial = DatasetLoader(**loader_args).load(verbose=True)
-        data_initial = data_initial.to('cuda')
+        # data_initial = data_initial.to('cuda')
 
     ### initiallize method ###
     num_classes = data_initial.y.max().item() + 1
