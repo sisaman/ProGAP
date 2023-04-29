@@ -58,7 +58,7 @@ class NodeLevelProGAP (ProGAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.epochs,
+            epochs=self.trainer.max_epochs,
             max_grad_norm=self.max_grad_norm,
         )
 
@@ -91,20 +91,22 @@ class NodeLevelProGAP (ProGAP):
             self.noisy_sgd.prepare_lightning_module(self.classifier)
         return set_stage
 
-    def fit(self, data: Data) -> Metrics:
-        num_train_nodes = data.train_mask.sum().item()
+    def fit(self) -> Metrics:
+        num_train_nodes = self.data.train_mask.sum().item()
 
         if num_train_nodes != self.num_train_nodes:
             self.num_train_nodes = num_train_nodes
             self.calibrate()
 
+        return super().fit()
+    
+    def set_data(self, data: Data) -> Data:
         with console.status('bounding the number of neighbors per node'):
             data = BoundOutDegree(self.max_degree)(data)
+        return super().set_data(data)
 
-        return super().fit(data)
-
-    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
-        dataloader = super().data_loader(data, phase)
+    def data_loader(self, phase: Phase) -> NodeDataLoader:
+        dataloader = super().data_loader(phase)
         if phase == 'train':
             dataloader.poisson_sampling = True
         return dataloader

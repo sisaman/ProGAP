@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from torch import Tensor
 from typing import Annotated, Literal, Union
-from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.gap.base import GAP
@@ -37,14 +36,13 @@ class EdgeLevelGAP (GAP):
             self.noise_scale = self.pma_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-
-    def fit(self, data: Data) -> Metrics:
-        m = data.num_edges
+    def fit(self) -> Metrics:
+        m = self.data.num_edges
         if self.num_edges != m:
             self.num_edges = m
             self.calibrate()
 
-        return super().fit(data)
+        return super().fit()
 
     def _aggregate(self, x: Tensor, adj_t: Tensor) -> torch.Tensor:
         x = torch.spmm(adj_t, x)

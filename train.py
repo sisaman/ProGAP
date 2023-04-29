@@ -15,7 +15,6 @@ with console.status('importing modules'):
     from core.methods.base import NodeClassification
     from core.methods.registry import supported_methods
     from core.utils import confidence_interval
-    from torch_geometric.data import Data
     from lightning import seed_everything
 
 
@@ -32,24 +31,27 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
         globals['debug'] = True
         console.log_level = console.DEBUG
 
+    ### setup logger ###
+    logger_args = strip_kwargs(Logger, kwargs)
+    logger = Logger(config=kwargs, debug=debug, **logger_args)
+    globals['logger'] = logger
+    del kwargs['logger']
+
     with console.status('loading dataset'):
         loader_args = strip_kwargs(DatasetLoader, kwargs)
-        data_initial = DatasetLoader(**loader_args).load(verbose=True)
-        # data_initial = data_initial.to('cuda')
+        data = DatasetLoader(**loader_args).load(verbose=True)
 
     ### initiallize method ###
-    num_classes = data_initial.y.max().item() + 1
+    num_classes = data.y.max().item() + 1
     Method = supported_methods[kwargs['method']][kwargs['level']]
     method_args = strip_kwargs(Method, kwargs)
     method: NodeClassification = Method(num_classes=num_classes, **method_args)
 
-    run_metrics = {}
-
     ### run experiment ###
+    run_metrics = {}
     for iteration in range(repeats):
         start_time = time()
-        data = Data(**data_initial.to_dict())
-        metrics = method.fit(data)
+        metrics = method.run(data)
         end_time = time()
         duration = end_time - start_time
         metrics['duration'] = duration
@@ -70,7 +72,7 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
         console.print()
 
         ### reset method's parameters for the next run ###
-        method.reset_parameters()
+        method.reset()
 
     logger: Logger = globals['logger']
     summary = {}
@@ -122,11 +124,6 @@ def main():
     parser = ArgumentParser(parents=[init_parser], formatter_class=ArgumentDefaultsRichHelpFormatter)
     kwargs = vars(parser.parse_args())
     print_args(kwargs, num_cols=2)
-
-    ### setup logger ###
-    logger_args = strip_kwargs(Logger, kwargs)
-    logger = Logger(config=kwargs, **logger_args)
-    globals['logger'] = logger
 
     try:
         start = time()

@@ -1,6 +1,5 @@
 import torch
 from typing import Annotated, Optional
-from torch_geometric.data import Data
 from class_resolver.contrib.torch import activation_resolver
 from core import console
 from core.args.utils import ArgInfo
@@ -25,9 +24,9 @@ class ProGAP (NodeClassification):
                  dropout:       Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:    Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
                  layerwise:     Annotated[bool,  ArgInfo(help='if true, then model uses layerwise training')] = False,
-                 optimizer:       Annotated[str,   ArgInfo(help='optimization algorithm', choices=['sgd', 'adam'])] = 'adam',
-                 learning_rate:   Annotated[float, ArgInfo(help='learning rate', option='--lr')] = 0.01,
-                 weight_decay:    Annotated[float, ArgInfo(help='weight decay (L2 penalty)')] = 0.0,
+                 optimizer:     Annotated[str,   ArgInfo(help='optimization algorithm', choices=['sgd', 'adam'])] = 'adam',
+                 learning_rate: Annotated[float, ArgInfo(help='learning rate', option='--lr')] = 0.01,
+                 weight_decay:  Annotated[float, ArgInfo(help='weight decay (L2 penalty)')] = 0.0,
                  **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
                  ):
 
@@ -67,51 +66,42 @@ class ProGAP (NodeClassification):
             learning_rate=self.learning_rate,
             weight_decay=self.weight_decay,
         )
-
-    def test(self, data: Optional[Data] = None) -> Metrics:
-        """Predict the labels for the given data, or the training data if data is None."""
-        
-        if data is None or data == self.data:
-            data = self.data
-        else:
-            self.pipeline(data, train=False)
-
-        test_metics = self.trainer.test(
-            dataloader=self.data_loader(data, 'test'),
-        )
-
-        return test_metics
-
-    def predict(self, data: Optional[Data] = None) -> torch.Tensor:
-        """Predict the labels for the given data, or the training data if data is None."""
-        
-        if data is None or data == self.data:
-            data = self.data
-        else:
-            self.pipeline(data, train=False)
-        
-        return self.trainer.predict(
-            dataloader=self.data_loader(data, 'predict'),
-        )
-
-    def train_classifier(self, data: Data) -> Metrics:
-        return self.pipeline(data, train=True)
-
-    def pipeline(self, data: Data, train: bool=False) -> Optional[Metrics]:
+    
+    def pipeline(self, fit: bool=False) -> Optional[Metrics]:
         n = self.num_stages
-        data.x0 = data.x
+        self.data.x0 = self.data.x
         
         for i in range(n):
             if i > 0:
-                x, _ = self.trainer.predict(dataloader=self.data_loader(data, 'predict'))
-                x = self.nap(x, data.adj_t)
-                data[f'x{i}'] = x
+                x, _ = self.trainer.predict(dataloader=self.data_loader('predict'))
+                x = self.to_device(x)
+                x = self.nap(x, self.data.adj_t)
+                self.data[f'x{i}'] = x
             
             self.classifier.set_stage(i)
 
-            if train:
+            if fit:
                 console.info(f'Fitting stage {i+1} of {n}')
-                metrics = super().train_classifier(data)
+                self.trainer = self.configure_trainer()
+                metrics = super().fit()
 
-        return metrics if train else None
+        self.data.ready = True
+        return metrics if fit else None
+    
+    def fit(self) -> Metrics:
+        return self.pipeline(fit=True)
+
+    def test(self) -> Metrics:
+        """Predict the labels for the given data, or the training data if data is None."""
+        if not getattr(self.data, 'ready', False):
+            self.pipeline(fit=False)
+        
+        return super().test()
+
+    def predict(self) -> torch.Tensor:
+        """Predict the labels for the given data, or the training data if data is None."""
+        if not getattr(self.data, 'ready', False):
+            self.pipeline(fit=False)
+        
+        return super().predict()
 

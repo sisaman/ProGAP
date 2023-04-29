@@ -1,8 +1,7 @@
+from typing import Annotated
 import torch
 from torch import Tensor
-from typing import Annotated, Optional
 import torch.nn.functional as F
-from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.base import NodeClassification
@@ -69,10 +68,10 @@ class GAP (NodeClassification):
             weight_decay=weight_decay,
         )
 
-    def reset_parameters(self):
+    def reset(self):
         self.encoder.reset_parameters()
-        self.encoder_trainer.reset()
-        super().reset_parameters()
+        self.encoder_trainer = self.configure_trainer()
+        super().reset()
 
     def configure_classifier(self) -> ClassificationModule:
         return ClassificationModule(
@@ -90,40 +89,31 @@ class GAP (NodeClassification):
             weight_decay=self.weight_decay,
         )
 
-    def fit(self, data: Data) -> Metrics:
-        self.data = data
-        
-        # pre-train encoder
+    def fit(self) -> Metrics:        
         if self.encoder_layers > 0:
-            self.data = self.pretrain_encoder(self.data)
-
-        # compute aggregations
-        self.data = self.compute_aggregations(self.data)
-
-        # train classifier
-        return super().fit(self.data)
-
-    def test(self, data: Optional[Data] = None) -> Metrics:
-        if data is None or data == self.data:
-            data = self.data
+            console.info('pretraining encoder')
+            self.fit_encoder()
         else:
-            data.x = self.encoder_trainer.predict(
-                dataloader=self.data_loader(data, 'predict')
-            )
-            data = self.compute_aggregations(data)
+            console.info('skipping encoder pretraining')
 
-        return super().test(data)
+        with console.status('computing aggregations'):
+            self.compute_aggregations()
 
-    def predict(self, data: Optional[Data] = None) -> Tensor:
-        if data is None or data == self.data:
-            data = self.data
-        else:
-            data.x = self.encoder_trainer.predict(
-                dataloader=self.data_loader(data, 'predict')
-            )
-            data = self.compute_aggregations(data)
+        console.info('training classifier')
+        metrics = super().fit()
+        return metrics
 
-        return super().predict(data)
+    def test(self) -> Metrics:
+        if not getattr(self.data, 'aggs_ready', False):
+            self.compute_aggregations()
+        
+        return super().test()
+
+    def predict(self) -> Tensor:
+        if not getattr(self.data, 'aggs_ready', False):
+            self.compute_aggregations()
+        
+        return super().predict()
 
     def _aggregate(self, x: Tensor, adj_t: Tensor) -> Tensor:
         return torch.spmm(adj_t, x)
@@ -131,33 +121,31 @@ class GAP (NodeClassification):
     def _normalize(self, x: Tensor) -> Tensor:
         return F.normalize(x, p=2, dim=-1)
 
-    def pretrain_encoder(self, data: Data) -> Data:
-        console.info('pretraining encoder')
-        self.encoder_trainer.reset()
-        
+    def fit_encoder(self):
+        if self.encoder_trainer.logger is not None:
+            self.encoder_trainer.logger.set_prefix('encoder')
         self.encoder_trainer.fit(
             model=self.encoder,
-            epochs=self.epochs,
-            train_dataloader=self.data_loader(data, 'train'), 
-            val_dataloader=self.data_loader(data, 'val'),
+            train_dataloader=self.data_loader('train'), 
+            val_dataloader=self.data_loader('val'),
             test_dataloader=None,
         )
+        if self.encoder_trainer.logger is not None:
+            self.encoder_trainer.logger.set_prefix('')
 
-        data.x = self.encoder_trainer.predict(
-            dataloader=self.data_loader(data, 'predict'),
+    def compute_aggregations(self):
+        # extract node embeddings from encoder
+        x = self.encoder_trainer.predict(
+            dataloader=self.data_loader('predict'),
         )
+        x = self.to_device(x)
+        x = F.normalize(x, p=2, dim=-1)
+        x_list = [x]
 
-        return data
+        for _ in range(self.hops):
+            x = self._aggregate(x, self.data.adj_t)
+            x = self._normalize(x)
+            x_list.append(x)
 
-    def compute_aggregations(self, data: Data) -> Data:
-        with console.status('computing aggregations'):
-            x = F.normalize(data.x, p=2, dim=-1)
-            x_list = [x]
-
-            for _ in range(self.hops):
-                x = self._aggregate(x, data.adj_t)
-                x = self._normalize(x)
-                x_list.append(x)
-
-            data.x = torch.stack(x_list, dim=-1)
-        return data
+        self.data.x = torch.stack(x_list, dim=-1)
+        self.data.aggs_ready = True

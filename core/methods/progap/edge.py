@@ -47,10 +47,10 @@ class EdgeLevelProGAP (ProGAP):
             
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-    def fit(self, data: Data) -> Metrics:
-        m = data.num_edges
+    def fit(self) -> Metrics:
+        m = self.data.num_edges
         if self.num_edges != m:
             self.num_edges = m
             self.calibrate()
 
-        return super().fit(data)
+        return super().fit()
