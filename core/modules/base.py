@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Optional
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from torch_geometric.data import Data
