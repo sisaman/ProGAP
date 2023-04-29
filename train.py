@@ -55,7 +55,8 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
         data = Data(**data_initial.to_dict())
         metrics = method.fit(data)
         end_time = time()
-        metrics['duration'] = end_time - start_time
+        duration = end_time - start_time
+        metrics['duration'] = duration
 
         ### process results ###
         for metric, value in metrics.items():
@@ -64,7 +65,7 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
             run_metrics[metric] = run_metrics.get(metric, []) + [value]
 
          ### print results ###
-        table = Table(title=f'run {iteration + 1}', box=box.HORIZONTALS)
+        table = Table(title=f'run {iteration + 1}: {duration:.2f} s', box=box.HORIZONTALS)
         table.add_column('metric')
         table.add_column('last', style="cyan")
         table.add_column('mean', style="cyan")
