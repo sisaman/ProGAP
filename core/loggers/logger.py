@@ -54,6 +54,7 @@ class Logger(LoggerBase):
                     save_code=True,
                     settings=settings
                 )
+                self._logger.LOGGER_JOIN_CHAR = '/'
             
         return self._logger
     
@@ -75,6 +76,9 @@ class Logger(LoggerBase):
     
     def log_metrics(self, metrics: Dict[str, float], step: int | None = None) -> None:
         return self.logger.log_metrics(metrics, step)
+    
+    def set_prefix(self, prefix: str) -> None:
+        self.logger._prefix = prefix
         
     def __getattr__(self, attr):
         try:
