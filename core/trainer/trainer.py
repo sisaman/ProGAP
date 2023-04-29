@@ -51,10 +51,14 @@ class Trainer:
         )
 
         logger = globals['logger'] if self.log_trainer else False
+        
+        callbacks = [checkpoint]
+        if self.verbose:
+            callbacks.append(progress)
 
         self.trainer = LightningTrainer(
             accelerator=self.accelerator,
-            callbacks=[checkpoint, progress],
+            callbacks=callbacks,
             logger=logger,
             max_epochs=epochs,
             check_val_every_n_epoch=1,
