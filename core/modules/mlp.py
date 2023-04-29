@@ -36,7 +36,7 @@ class MLPNodeClassifier(TrainableModule):
     def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
         x, y = data.x[data.batch_nodes], data.y[data.batch_nodes]
         preds = F.log_softmax(self(x), dim=-1)
-        acc = preds.argmax(dim=1).eq(y).float().mean() * 100
+        acc = preds.detach().argmax(dim=1).eq(y).float().mean() * 100
         metrics = {f'{phase}/acc': acc}
 
         loss = None

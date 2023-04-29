@@ -114,7 +114,7 @@ class ProgressiveModule(TrainableModule):
         y = data.y[data.batch_nodes]
         
         preds: Tensor = self(xs)[1]
-        acc = preds.argmax(dim=1).eq(y).float().mean() * 100
+        acc = preds.detach().argmax(dim=1).eq(y).float().mean() * 100
         metrics = {f'{phase}/acc': acc}
 
         loss = None
