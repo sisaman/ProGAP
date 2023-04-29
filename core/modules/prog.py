@@ -125,7 +125,7 @@ class ProgressiveModule(TrainableModule):
         return loss, metrics
 
     def predict(self, data: Data) -> tuple[Tensor, Tensor]:
-        xs = [data[f'x{i}'] for i in range(self.current_stage + 1)]
+        xs = [data[f'x{i}'][data.batch_nodes] for i in range(self.current_stage + 1)]
         x, y = self(xs)
         return x, torch.softmax(y, dim=-1)
         

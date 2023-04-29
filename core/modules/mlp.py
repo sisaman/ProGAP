@@ -47,7 +47,7 @@ class MLPNodeClassifier(TrainableModule):
         return loss, metrics
 
     def predict(self, data: Data) -> Tensor:
-        h = self(data.x)
+        h = self(data.x[data.batch_nodes])
         return torch.softmax(h, dim=-1)
 
     def reset_parameters(self):

@@ -57,7 +57,7 @@ class EncoderModule(MLPNodeClassifier):
         return x
 
     def predict(self, data: Data) -> Tensor:
-        x = data.x
+        x = data.x[data.batch_nodes]
         x = self.encoder_mlp(x)
         if self.normalize:
             x = F.normalize(x, p=2, dim=-1)
