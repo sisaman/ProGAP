@@ -1,4 +1,3 @@
-import lightning.pytorch as pl
 from torch import Tensor
 from typing import Annotated, Iterable, Optional
 from core.args.utils import ArgInfo
