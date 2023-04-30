@@ -1,7 +1,5 @@
-import time
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable
 from lightning import LightningModule, Trainer
-import lightning.pytorch as pl
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 from rich.console import Group
 from rich.padding import Padding
@@ -115,7 +113,6 @@ class ProgressCallback(ProgressBar):
 
     def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
-        time.sleep(0.2)
         self.progress.update('train', advance=1)
 
     def on_validation_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
@@ -124,7 +121,6 @@ class ProgressCallback(ProgressBar):
 
     def on_validation_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs: STEP_OUTPUT | None, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        time.sleep(0.2)
         self.progress.update('val', advance=1)
 
     def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
