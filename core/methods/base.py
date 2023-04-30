@@ -65,7 +65,6 @@ class NodeClassification(ABC):
     
     def fit(self) -> Metrics:    
         """Fit the method to the given data."""    
-        self.trainer.current_epoch
         metrics = self.trainer.fit(
             model=self.classifier,
             train_dataloader=self.data_loader('train'), 
@@ -106,4 +105,4 @@ class NodeClassification(ABC):
     
     def to_device(self, data: Union[Data, Tensor]):
         """Move the data to the device."""
-        return self.trainer.strategy.batch_to_device(data)
+        return self.trainer.fabric.to_device(data)

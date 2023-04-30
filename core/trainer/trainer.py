@@ -1,107 +1,143 @@
-from torch import Tensor
-from typing import Annotated, Iterable, Optional
-
+from copy import deepcopy
+from typing import Annotated, Iterable, Literal, Optional
 import torch
+from torch.types import Number
+from torchmetrics import MeanMetric
 from core.args.utils import ArgInfo
-from core.trainer.checkpoint import InMemoryCheckpoint, CheckpointIO
-from core.trainer.progress import ProgressCallback
+from core.loggers.logger import Logger
+from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, TrainableModule
-from lightning import Trainer as LightningTrainer
-from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar
+from lightning import Fabric
 from core import globals
+from core.typing import Phase
 
 
-class Trainer(LightningTrainer):
+class Trainer:
     def __init__(self,
-                 epochs:      Annotated[int,  ArgInfo(help='number of epochs for training')] = 100,
-                 accelerator: Annotated[str,  ArgInfo(help='accelerator to use')] = 'auto',
-                 verbose:     Annotated[bool, ArgInfo(help='display progress')] = True,
-                 log_trainer: Annotated[bool, ArgInfo(help='log all training steps')] = False,
-                 **kwargs:    Annotated[dict,  ArgInfo(help='extra options passed to the trainer class', bases=[LightningTrainer])]
+                 monitor:       str = 'val/acc',
+                 monitor_mode:  Literal['min', 'max'] = 'max',
+                 epochs:        Annotated[int,  ArgInfo(help='number of epochs for training')] = 100,
+                 accelerator:   Annotated[str,  ArgInfo(help='accelerator to use')] = 'auto',
+                 verbose:       Annotated[bool, ArgInfo(help='display progress')] = True,
+                 log_trainer:   Annotated[bool, ArgInfo(help='log all training steps')] = False,
                  ):
+
+        self.epochs = epochs
+        self.monitor = monitor
+        self.monitor_mode = monitor_mode
+        self.accelerator = accelerator
+        self.verbose = verbose
+        self.log_trainer = log_trainer
         
-        callbacks = kwargs.pop('callbacks', [])
-        plugins = kwargs.pop('plugins', [])
-        logger = kwargs.pop('logger', globals['logger'] if log_trainer else False)
+        # trainer internal state
+        self.model: TrainableModule = None
+        self.metrics: dict[str, MeanMetric] = {}
 
-        if not any(isinstance(callback, ModelCheckpoint) for callback in callbacks):
-            checkpoint = ModelCheckpoint(
-                monitor='val/acc',
-                mode='max',
-                save_top_k=1,
-                save_last=False,
-                save_weights_only=True,
-            )
-            callbacks.append(checkpoint)
+        # setup fabric
+        self.fabric = Fabric(accelerator=self.accelerator)
+        self.fabric.launch()
 
-        if verbose and not any(isinstance(callback, ProgressBar) for callback in callbacks):
-            callbacks.append(ProgressCallback())
+    def update_metrics(self, metric_name: str, metric_value: object, batch_size: int = 1) -> None:
+        # if this is a new metric, add it to self.metrics
+        device = metric_value.device if torch.is_tensor(metric_value) else 'cpu'
+        if metric_name not in self.metrics:
+            self.metrics[metric_name] = MeanMetric(compute_on_step=False).to(device)
 
-        if not any(isinstance(plugin, CheckpointIO) for plugin in plugins):
-            plugins.append(InMemoryCheckpoint())
+        # update the metric
+        self.metrics[metric_name].update(metric_value, weight=batch_size)
+
+    def aggregate_metrics(self, phase: Phase='train') -> Metrics:
+        metrics = {}
+
+        for metric_name, metric_value in self.metrics.items():
+            if phase in metric_name.split('/'):
+                value = metric_value.compute()
+                metric_value.reset()
+                metrics[metric_name] = value
+
+        return metrics
+
+    def is_better(self, current_metric: Number, previous_metric: Number) -> bool:
+        assert self.monitor_mode in ['min', 'max'], f'Unknown metric mode: {self.monitor_mode}'
+        if self.monitor_mode == 'max':
+            return current_metric > previous_metric
+        elif self.monitor_mode == 'min':
+            return current_metric < previous_metric
         
-        super().__init__(
-            accelerator=accelerator,
-            callbacks=callbacks,
-            logger=logger,
-            max_epochs=epochs,
-            check_val_every_n_epoch=kwargs.pop('check_val_every_n_epoch', 1),
-            enable_progress_bar=verbose,
-            enable_model_summary=kwargs.pop('enable_model_summary', False),
-            plugins=plugins,
-            num_sanity_val_steps=0,
-            # deterministic=True,
-            **kwargs
-        )
-    
     def fit(self, 
             model: TrainableModule, 
             train_dataloader: Iterable, 
             val_dataloader: Optional[Iterable]=None, 
             test_dataloader: Optional[Iterable]=None, 
             ) -> Metrics:
+        
+        self.model = self.fabric.setup_module(model)
+        self.optimizer = self.fabric.setup_optimizers(model.configure_optimizers())
+        logger: Logger = globals['logger']
 
-        val_test_dataloaders = []
-        if val_dataloader:
-            val_test_dataloaders.append(val_dataloader)
-        if test_dataloader:
-            val_test_dataloaders.append(test_dataloader)
-
-        super().fit(
-            model=model,
-            train_dataloaders=train_dataloader,
-            val_dataloaders=val_test_dataloaders,
+        self.progress = TrainerProgress(
+            num_epochs=self.epochs, 
+            disable=not self.verbose,
         )
 
-        if self.interrupted:
-            raise KeyboardInterrupt
+        best_state_dict = None
+        best_metrics = None
+        
+        with self.progress:
+            for epoch in range(1, self.epochs + 1):
+                metrics = {f'epoch': epoch}
 
-        checkpoint = self.checkpoint_callback
-        metrics = {
-            'epoch': self.strategy.load_checkpoint(checkpoint.best_model_path)['epoch'],
-            checkpoint.monitor: checkpoint.best_model_score,
-        }
+                # train loop
+                train_metrics = self.loop(train_dataloader, phase='train')
+                metrics.update(train_metrics)
+                    
+                # validation loop
+                if val_dataloader:
+                    val_metrics = self.loop(val_dataloader, phase='val')
+                    metrics.update(val_metrics)
 
-        return metrics
+                    if best_metrics is None or self.is_better(
+                        metrics[self.monitor], best_metrics[self.monitor]
+                        ):
+                        best_metrics = metrics
+                        best_state_dict = deepcopy(self.model.state_dict())
+
+                # test loop
+                if test_dataloader:
+                    test_metrics = self.loop(test_dataloader, phase='test')
+                    metrics.update(test_metrics)
+
+                # log and update progress
+                self.progress.update(task='epoch', metrics=metrics, advance=1)
+                if self.log_trainer:
+                    logger.log_metrics(metrics)
+
+        if best_metrics is None:
+            best_metrics = metrics
+        else:
+            self.model.load_state_dict(best_state_dict)
+
+        # log and return best metrics
+        if self.log_trainer:
+            logger.log_summary(best_metrics)
+
+        return best_metrics
 
     def test(self, dataloader: Iterable) -> Metrics:
-        return super().test(dataloaders=dataloader, ckpt_path='best', verbose=False)[0]
-    
-    def predict(self, dataloader: Iterable) -> Tensor:
-        # load best model
-        ckpt_path = self.checkpoint_callback.best_model_path
-        checkpoint = self.strategy.load_checkpoint(ckpt_path)
-        self.strategy.load_model_state_dict(checkpoint)
-        self.strategy.model_to_device()
-        
+        self.metrics.clear()
+        metrics = self.loop(dataloader, phase='test')
+        return metrics
+
+    def predict(self, dataloader: Iterable, move_to_cpu: bool=False) -> Metrics:
         preds = []
-        model = self.lightning_module
-        model.eval()
+        self.model.eval()
         with torch.no_grad():
-            for batch_idx, batch in enumerate(dataloader):
-                batch = self.strategy.batch_to_device(batch)
+            for batch in dataloader:
+                batch = self.fabric.to_device(batch)
                 # out might be a tuple of predictions
-                out = model.predict_step(batch, batch_idx)
+                out = self.model.predict(batch)
+                if move_to_cpu:
+                    out = out.cpu()
                 preds.append(out)
             
         # concatenate predictions, check if they are tuples
@@ -111,3 +147,32 @@ class Trainer(LightningTrainer):
             preds = torch.cat(preds)
 
         return preds
+
+    def loop(self, dataloader: Iterable, phase: Phase) -> Metrics:
+        self.model.train(phase == 'train')
+        grad_state = torch.is_grad_enabled()
+        torch.set_grad_enabled(phase == 'train')
+        self.progress.update(phase, visible=len(dataloader) > 1, total=len(dataloader))
+
+        for batch in dataloader:
+            batch = self.fabric.to_device(batch)
+            metrics = self.step(batch, phase)
+            for item in metrics:
+                self.update_metrics(item, metrics[item], batch_size=batch.batch_nodes.size(0))
+            self.progress.update(phase, advance=1)
+
+        self.progress.reset(phase, visible=False)
+        torch.set_grad_enabled(grad_state)
+        return self.aggregate_metrics(phase)
+
+    def step(self, batch, phase: Phase) -> Metrics:
+        if phase == 'train':
+            self.optimizer.zero_grad(set_to_none=True)
+
+        loss, metrics = self.model.step(batch, phase=phase)
+        
+        if phase == 'train' and loss is not None:
+            self.fabric.backward(loss)
+            self.optimizer.step()
+
+        return metrics
