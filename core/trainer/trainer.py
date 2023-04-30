@@ -54,6 +54,7 @@ class Trainer(LightningTrainer):
             enable_progress_bar=verbose,
             enable_model_summary=kwargs.pop('enable_model_summary', False),
             plugins=plugins,
+            num_sanity_val_steps=0,
             # deterministic=True,
             **kwargs
         )
