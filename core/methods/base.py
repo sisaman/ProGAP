@@ -43,9 +43,10 @@ class NodeClassification(ABC):
 
     def set_data(self, data: Data) -> Data:
         """Set the data for the method."""
-        data = Data(**data.to_dict())
         with console.status('moving data to device'):
-            self.data = self.to_device(data)
+            data = self.to_device(data)
+        
+        self.data = Data(**data.to_dict())
         return self.data
 
     def run(self, data: Data, fit: bool = True, test: bool = True) -> Metrics:
