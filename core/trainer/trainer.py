@@ -2,17 +2,11 @@ from torch import Tensor
 from typing import Annotated, Iterable, Optional
 from core.args.utils import ArgInfo
 from core.trainer.checkpoint import InMemoryCheckpoint, CheckpointIO
-from core.trainer.progress import TrainerProgress
+from core.trainer.progress import ProgressCallback
 from core.modules.base import Metrics, TrainableModule
-from lightning import LightningModule, Trainer as LightningTrainer
-from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, Callback
+from lightning import Trainer as LightningTrainer
+from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar
 from core import globals
-
-
-class ShutdownCallback(Callback):
-    def on_exception(self, trainer: LightningTrainer, pl_module: LightningModule, exception: BaseException) -> None:
-        if trainer.interrupted:
-            raise KeyboardInterrupt
 
 
 class Trainer(LightningTrainer):
@@ -28,8 +22,6 @@ class Trainer(LightningTrainer):
         plugins = kwargs.pop('plugins', [])
         logger = kwargs.pop('logger', globals['logger'] if log_trainer else False)
 
-        callbacks.append(ShutdownCallback())
-
         if not any(isinstance(callback, ModelCheckpoint) for callback in callbacks):
             checkpoint = ModelCheckpoint(
                 monitor='val/acc',
@@ -41,14 +33,7 @@ class Trainer(LightningTrainer):
             callbacks.append(checkpoint)
 
         if verbose and not any(isinstance(callback, ProgressBar) for callback in callbacks):
-            progress = TrainerProgress(
-                # num_epochs=epochs, 
-                # num_train_steps=len(train_dataloader), 
-                # num_val_steps=len(val_dataloader), 
-                # num_test_steps=len(test_dataloader),
-                # disable=not self.verbose,
-            )
-            callbacks.append(progress)
+            callbacks.append(ProgressCallback())
 
         if not any(isinstance(plugin, CheckpointIO) for plugin in plugins):
             plugins.append(InMemoryCheckpoint())
@@ -85,6 +70,9 @@ class Trainer(LightningTrainer):
             train_dataloaders=train_dataloader,
             val_dataloaders=val_test_dataloaders,
         )
+
+        if self.interrupted:
+            raise KeyboardInterrupt
 
         checkpoint = self.checkpoint_callback
         metrics = {
