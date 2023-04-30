@@ -27,6 +27,7 @@ class Trainer:
         self.monitor_mode = monitor_mode
         self.verbose = verbose
         self.log_trainer = log_trainer
+        self.logger: Logger = globals['logger']
 
         # setup device
         if device == 'auto':
@@ -78,7 +79,6 @@ class Trainer:
         
         self.model = model.to(self.device)
         self.optimizer: Optimizer = self.model.configure_optimizers()
-        logger: Logger = globals['logger']
 
         self.progress = TrainerProgress(
             num_epochs=self.epochs, 
@@ -115,7 +115,7 @@ class Trainer:
                 # log and update progress
                 self.progress.update(task='epoch', metrics=metrics, advance=1)
                 if self.log_trainer:
-                    logger.log_metrics(metrics)
+                    self.logger.log(metrics)
 
         if best_metrics is None:
             best_metrics = metrics
@@ -124,7 +124,7 @@ class Trainer:
 
         # log and return best metrics
         if self.log_trainer:
-            logger.log_summary(best_metrics)
+            self.logger.log_summary(best_metrics)
 
         return best_metrics
 

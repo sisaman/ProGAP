@@ -1,4 +1,3 @@
-from lightning import LightningModule
 from opacus.privacy_engine import forbid_accumulation_hook
 from opacus.grad_sample import GradSampleModule
 from opacus.optimizers import DPOptimizer
@@ -6,6 +5,7 @@ from autodp.transformer_zoo import Composition, AmplificationBySampling
 from torch.nn import Module
 from torch.optim import Optimizer
 from core.data.loader.node import NodeDataLoader
+from core.modules.base import TrainableModule
 from core.privacy.mechanisms.commons import GaussianMechanism, InfMechanism, ZeroMechanism
 from core.privacy.mechanisms.noisy import NoisyMechanism
 
@@ -59,7 +59,7 @@ class NoisySGD(NoisyMechanism):
             )
         return optimizer
     
-    def prepare_lightning_module(self, module: LightningModule) -> None:
+    def prepare_trainable_module(self, module: TrainableModule) -> None:
         self.prepare_module(module)
         if not hasattr(module, 'original_configure_optimizers'):
             module.original_configure_optimizers = module.configure_optimizers

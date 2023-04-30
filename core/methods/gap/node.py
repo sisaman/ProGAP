@@ -47,7 +47,7 @@ class NodeLevelGAP (GAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.encoder_trainer.max_epochs,
+            epochs=self.encoder_trainer.epochs,
             max_grad_norm=self.max_grad_norm,
         )
 
@@ -55,7 +55,7 @@ class NodeLevelGAP (GAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.trainer.max_epochs,
+            epochs=self.trainer.epochs,
             max_grad_norm=self.max_grad_norm,
         )
 
@@ -76,8 +76,8 @@ class NodeLevelGAP (GAP):
             self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-        self.encoder_noisy_sgd.prepare_lightning_module(self.encoder)
-        self.classifier_noisy_sgd.prepare_lightning_module(self.classifier)
+        self.encoder_noisy_sgd.prepare_trainable_module(self.encoder)
+        self.classifier_noisy_sgd.prepare_trainable_module(self.classifier)
 
     def fit(self) -> Metrics:
         num_train_nodes = self.data.train_mask.sum().item()

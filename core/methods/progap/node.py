@@ -58,7 +58,7 @@ class NodeLevelProGAP (ProGAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.trainer.max_epochs,
+            epochs=self.trainer.epochs,
             max_grad_norm=self.max_grad_norm,
         )
 
@@ -88,7 +88,7 @@ class NodeLevelProGAP (ProGAP):
     def wrap_set_stage(self, original_set_stage):
         def set_stage(stage: int) -> None:
             original_set_stage(stage)
-            self.noisy_sgd.prepare_lightning_module(self.classifier)
+            self.noisy_sgd.prepare_trainable_module(self.classifier)
         return set_stage
 
     def fit(self) -> Metrics:

@@ -122,16 +122,14 @@ class GAP (NodeClassification):
         return F.normalize(x, p=2, dim=-1)
 
     def fit_encoder(self):
-        if self.encoder_trainer.logger is not None:
-            self.encoder_trainer.logger.set_prefix('encoder')
+        self.encoder_trainer.logger.set_prefix('encoder/')
         self.encoder_trainer.fit(
             model=self.encoder,
             train_dataloader=self.data_loader('train'), 
             val_dataloader=self.data_loader('val'),
             test_dataloader=None,
         )
-        if self.encoder_trainer.logger is not None:
-            self.encoder_trainer.logger.set_prefix('')
+        self.encoder_trainer.logger.set_prefix('')
 
     def compute_aggregations(self):
         # extract node embeddings from encoder
