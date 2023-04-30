@@ -1,5 +1,7 @@
 from torch import Tensor
 from typing import Annotated, Iterable, Optional
+
+import torch
 from core.args.utils import ArgInfo
 from core.trainer.checkpoint import InMemoryCheckpoint, CheckpointIO
 from core.trainer.progress import ProgressCallback
@@ -86,4 +88,26 @@ class Trainer(LightningTrainer):
         return super().test(dataloaders=dataloader, ckpt_path='best', verbose=False)[0]
     
     def predict(self, dataloader: Iterable) -> Tensor:
-        return super().predict(dataloaders=dataloader, ckpt_path='best')[0]
+        # load best model
+        ckpt_path = self.checkpoint_callback.best_model_path
+        checkpoint = self.strategy.load_checkpoint(ckpt_path)
+        self.strategy.load_model_state_dict(checkpoint)
+        self.strategy.model_to_device()
+        
+        preds = []
+        model = self.lightning_module
+        model.eval()
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(dataloader):
+                batch = self.strategy.batch_to_device(batch)
+                # out might be a tuple of predictions
+                out = model.predict_step(batch, batch_idx)
+                preds.append(out)
+            
+        # concatenate predictions, check if they are tuples
+        if isinstance(preds[0], tuple):
+            preds = tuple(torch.cat([p[i] for p in preds]) for i in range(len(preds[0])))
+        else:
+            preds = torch.cat(preds)
+
+        return preds
