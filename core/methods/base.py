@@ -98,7 +98,7 @@ class NodeClassification(ABC):
             subset=subset,
             batch_size=batch_size, 
             shuffle=shuffle, 
-            drop_last=True,
+            drop_last=phase == 'train',
             poisson_sampling=False,
         )
 
