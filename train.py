@@ -37,7 +37,7 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
 
     ### setup logger ###
     logger_args = strip_kwargs(Logger, kwargs)
-    logger = Logger(config=kwargs, debug=debug, **logger_args)
+    logger = Logger(config=kwargs, **logger_args)
     globals['logger'] = logger
     del kwargs['logger']
 
