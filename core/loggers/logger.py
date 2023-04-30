@@ -1,8 +1,7 @@
-from argparse import Namespace
 import os
+from argparse import Namespace
 from typing import Annotated, Any, Dict
 from uuid import uuid1
-from core import console
 from core.args.utils import ArgInfo
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.loggers.logger import DummyLogger, Logger as LoggerBase
@@ -18,13 +17,7 @@ class Logger(LoggerBase):
         output_dir: Annotated[str,  ArgInfo(help="directory to store the results")] = './output',
         version:    str = str(uuid1()), 
         config:     dict = {},
-        debug:      bool = False,
         ) -> LoggerBase:
-        
-        if debug:
-            logger = 'wandb'
-            project += '-Test'
-            console.warning(f'debug mode enabled! wandb logger is active for project {project}')
 
         self.logger_name = logger
         self.project = project
