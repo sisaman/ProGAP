@@ -3,7 +3,6 @@ import torch
 from torch import Tensor
 from typing import Annotated, Literal, Union
 from torch_geometric.data import Data
-from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader

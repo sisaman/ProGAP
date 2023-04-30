@@ -3,7 +3,6 @@ from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from torch_geometric.data import Data
 from abc import ABC, abstractmethod
-from core.args.utils import ArgInfo
 from core.typing import Metrics, Phase
 from lightning import LightningModule
 from class_resolver.contrib.torch import optimizer_resolver

@@ -6,7 +6,7 @@ from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, TrainableModule
 from lightning import Trainer as LightningTrainer
 from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar
-from core import globals, console
+from core import globals
 
 
 class Trainer(LightningTrainer):

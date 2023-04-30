@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Literal, Union
 from torch import Tensor
 from torch_geometric.data import Data
 from core.args.utils import ArgInfo

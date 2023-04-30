@@ -1,6 +1,5 @@
 import numpy as np
 from typing import Annotated, Literal, Union
-from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.progap.base import ProGAP
