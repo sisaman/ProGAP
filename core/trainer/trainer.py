@@ -1,12 +1,19 @@
+import lightning.pytorch as pl
 from torch import Tensor
 from typing import Annotated, Iterable, Optional
 from core.args.utils import ArgInfo
 from core.trainer.checkpoint import InMemoryCheckpoint, CheckpointIO
 from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, TrainableModule
-from lightning import Trainer as LightningTrainer
-from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar
+from lightning import LightningModule, Trainer as LightningTrainer
+from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, Callback
 from core import globals
+
+
+class ShutdownCallback(Callback):
+    def on_exception(self, trainer: LightningTrainer, pl_module: LightningModule, exception: BaseException) -> None:
+        if trainer.interrupted:
+            raise KeyboardInterrupt
 
 
 class Trainer(LightningTrainer):
@@ -21,6 +28,8 @@ class Trainer(LightningTrainer):
         callbacks = kwargs.pop('callbacks', [])
         plugins = kwargs.pop('plugins', [])
         logger = kwargs.pop('logger', globals['logger'] if log_trainer else False)
+
+        callbacks.append(ShutdownCallback())
 
         if not any(isinstance(callback, ModelCheckpoint) for callback in callbacks):
             checkpoint = ModelCheckpoint(
