@@ -1,13 +1,13 @@
 from copy import deepcopy
 from typing import Annotated, Iterable, Literal, Optional
 import torch
+from torch.optim import Optimizer
 from torch.types import Number
 from torchmetrics import MeanMetric
 from core.args.utils import ArgInfo
 from core.loggers.logger import Logger
 from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, TrainableModule
-from lightning import Fabric
 from core import globals
 from core.typing import Phase
 
@@ -17,7 +17,7 @@ class Trainer:
                  monitor:       str = 'val/acc',
                  monitor_mode:  Literal['min', 'max'] = 'max',
                  epochs:        Annotated[int,  ArgInfo(help='number of epochs for training')] = 100,
-                 accelerator:   Annotated[str,  ArgInfo(help='accelerator to use')] = 'auto',
+                 device:        Annotated[str,  ArgInfo(help='device to use for training', choices=['cpu', 'cuda', 'auto'])] = 'auto',
                  verbose:       Annotated[bool, ArgInfo(help='display progress')] = True,
                  log_trainer:   Annotated[bool, ArgInfo(help='log all training steps')] = False,
                  ):
@@ -25,17 +25,22 @@ class Trainer:
         self.epochs = epochs
         self.monitor = monitor
         self.monitor_mode = monitor_mode
-        self.accelerator = accelerator
         self.verbose = verbose
         self.log_trainer = log_trainer
+
+        # setup device
+        if device == 'auto':
+            self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        else:
+            self.device = torch.device(device)
         
         # trainer internal state
         self.model: TrainableModule = None
         self.metrics: dict[str, MeanMetric] = {}
 
-        # setup fabric
-        self.fabric = Fabric(accelerator=self.accelerator)
-        self.fabric.launch()
+    def reset(self) -> None:
+        self.model = None
+        self.metrics.clear()
 
     def update_metrics(self, metric_name: str, metric_value: object, batch_size: int = 1) -> None:
         # if this is a new metric, add it to self.metrics
@@ -71,8 +76,8 @@ class Trainer:
             test_dataloader: Optional[Iterable]=None, 
             ) -> Metrics:
         
-        self.model = self.fabric.setup_module(model)
-        self.optimizer = self.fabric.setup_optimizers(model.configure_optimizers())
+        self.model = model.to(self.device)
+        self.optimizer: Optimizer = self.model.configure_optimizers()
         logger: Logger = globals['logger']
 
         self.progress = TrainerProgress(
@@ -133,7 +138,7 @@ class Trainer:
         self.model.eval()
         with torch.no_grad():
             for batch in dataloader:
-                batch = self.fabric.to_device(batch)
+                batch = self.to_device(batch)
                 # out might be a tuple of predictions
                 out = self.model.predict(batch)
                 if move_to_cpu:
@@ -155,7 +160,7 @@ class Trainer:
         self.progress.update(phase, visible=len(dataloader) > 1, total=len(dataloader))
 
         for batch in dataloader:
-            batch = self.fabric.to_device(batch)
+            batch = self.to_device(batch)
             metrics = self.step(batch, phase)
             for item in metrics:
                 self.update_metrics(item, metrics[item], batch_size=batch.batch_nodes.size(0))
@@ -171,8 +176,13 @@ class Trainer:
 
         loss, metrics = self.model.step(batch, phase=phase)
         
-        if phase == 'train' and loss is not None:
-            self.fabric.backward(loss)
+        if phase == 'train':
+            loss.backward()
             self.optimizer.step()
 
         return metrics
+    
+    def to_device(self, batch):
+        if isinstance(batch, tuple):
+            return tuple(item.to(self.device) for item in batch)
+        return batch.to(self.device)
