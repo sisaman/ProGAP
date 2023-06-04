@@ -133,9 +133,13 @@ class GAP (NodeClassification):
 
     def compute_aggregations(self):
         # extract node embeddings from encoder
-        x = self.encoder_trainer.predict(
-            dataloader=self.data_loader('predict'),
-        )
+        if self.encoder_layers > 0:
+            x = self.encoder_trainer.predict(
+                dataloader=self.data_loader('predict'),
+            )
+        else:
+            x = self.data.x
+            
         x = self.to_device(x)
         x = F.normalize(x, p=2, dim=-1)
         x_list = [x]
