@@ -1,9 +1,7 @@
+from typing import Annotated
 import torch
 from torch import Tensor
-from typing import Annotated, Optional
 import torch.nn.functional as F
-from torch.optim import Adam, SGD, Optimizer
-from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.base import NodeClassification
@@ -33,77 +31,89 @@ class GAP (NodeClassification):
                  activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=supported_activations)] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
+                 optimizer:       Annotated[str,   ArgInfo(help='optimization algorithm', choices=['sgd', 'adam'])] = 'adam',
+                 learning_rate:   Annotated[float, ArgInfo(help='learning rate', option='--lr')] = 0.01,
+                 weight_decay:    Annotated[float, ArgInfo(help='weight decay (L2 penalty)')] = 0.0,
                  **kwargs:        Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[NodeClassification])]
                  ):
 
+        self.num_classes = num_classes
+        self.hops = hops
+        self.hidden_dim = hidden_dim
+        self.encoder_layers = encoder_layers
+        self.base_layers = base_layers
+        self.head_layers = head_layers
+        self.combine = combine
+        self.activation_fn = self.supported_activations[activation]
+        self.dropout = dropout
+        self.batch_norm = batch_norm
+        self.optimizer = optimizer
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+
         super().__init__(num_classes, **kwargs)
 
-        self.hops = hops
-        self.encoder_layers = encoder_layers
-        activation_fn = self.supported_activations[activation]
-
-        self._encoder = EncoderModule(
+        self.encoder_trainer = self.configure_trainer()
+        self.encoder = EncoderModule(
             num_classes=num_classes,
             hidden_dim=hidden_dim,
             encoder_layers=encoder_layers,
             head_layers=1,
             normalize=True,
-            activation_fn=activation_fn,
+            activation_fn=self.activation_fn,
             dropout=dropout,
             batch_norm=batch_norm,
+            optimizer=optimizer,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
         )
 
-        self._classifier = ClassificationModule(
-            num_channels=hops+1,
-            num_classes=num_classes,
-            hidden_dim=hidden_dim,
-            base_layers=base_layers,
-            head_layers=head_layers,
-            combination=combine,
-            activation_fn=activation_fn,
-            dropout=dropout,
-            batch_norm=batch_norm,
+    def reset(self):
+        self.encoder.reset_parameters()
+        self.encoder_trainer = self.configure_trainer()
+        super().reset()
+
+    def configure_classifier(self) -> ClassificationModule:
+        return ClassificationModule(
+            num_channels=self.hops+1,
+            num_classes=self.num_classes,
+            hidden_dim=self.hidden_dim,
+            base_layers=self.base_layers,
+            head_layers=self.head_layers,
+            combination=self.combine,
+            activation_fn=self.activation_fn,
+            dropout=self.dropout,
+            batch_norm=self.batch_norm,
+            optimizer=self.optimizer,
+            learning_rate=self.learning_rate,
+            weight_decay=self.weight_decay,
         )
 
-    @property
-    def classifier(self) -> ClassificationModule:
-        return self._classifier
-
-    def reset_parameters(self):
-        self._encoder.reset_parameters()
-        super().reset_parameters()
-
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
-        self.data = data.to(self.device, non_blocking=True)
-        
-        # pre-train encoder
+    def fit(self) -> Metrics:        
         if self.encoder_layers > 0:
-            self.data = self.pretrain_encoder(self.data, prefix=prefix)
-
-        # compute aggregations
-        self.data = self.compute_aggregations(self.data)
-
-        # train classifier
-        return super().fit(self.data, prefix=prefix)
-
-    def test(self, data: Optional[Data] = None, prefix: str = '') -> Metrics:
-        if data is None or data == self.data:
-            data = self.data
+            console.info('pretraining encoder')
+            self.fit_encoder()
         else:
-            data = data.to(self.device, non_blocking=True)
-            data.x = self._encoder.predict(data)
-            data = self.compute_aggregations(data)
+            console.info('skipping encoder pretraining')
 
-        return super().test(data, prefix=prefix)
+        with console.status('computing aggregations'):
+            self.compute_aggregations()
 
-    def predict(self, data: Optional[Data] = None) -> Tensor:
-        if data is None or data == self.data:
-            data = self.data
-        else:
-            data.x = self._encoder.predict(data)
-            data = self.compute_aggregations(data)
+        console.info('training classifier')
+        metrics = super().fit()
+        return metrics
 
-        return super().predict(data)
+    def test(self) -> Metrics:
+        if not getattr(self.data, 'aggs_ready', False):
+            self.compute_aggregations()
+        
+        return super().test()
+
+    def predict(self) -> Tensor:
+        if not getattr(self.data, 'aggs_ready', False):
+            self.compute_aggregations()
+        
+        return super().predict()
 
     def _aggregate(self, x: Tensor, adj_t: Tensor) -> Tensor:
         return torch.spmm(adj_t, x)
@@ -111,38 +121,29 @@ class GAP (NodeClassification):
     def _normalize(self, x: Tensor) -> Tensor:
         return F.normalize(x, p=2, dim=-1)
 
-    def pretrain_encoder(self, data: Data, prefix: str) -> Data:
-        console.info('pretraining encoder')
-        self._encoder.to(self.device)
-        
-        self.trainer.fit(
-            model=self._encoder,
-            epochs=self.epochs,
-            optimizer=self.configure_encoder_optimizer(), 
-            train_dataloader=self.data_loader(data, 'train'), 
-            val_dataloader=self.data_loader(data, 'val'),
+    def fit_encoder(self):
+        self.encoder_trainer.logger.set_prefix('encoder/')
+        self.encoder_trainer.fit(
+            model=self.encoder,
+            train_dataloader=self.data_loader('train'), 
+            val_dataloader=self.data_loader('val'),
             test_dataloader=None,
-            checkpoint=True,
-            prefix=f'{prefix}encoder/',
         )
+        self.encoder_trainer.logger.set_prefix('')
 
-        self.trainer.reset()
-        data.x = self._encoder.predict(data)
-        return data
+    def compute_aggregations(self):
+        # extract node embeddings from encoder
+        x = self.encoder_trainer.predict(
+            dataloader=self.data_loader('predict'),
+        )
+        x = self.to_device(x)
+        x = F.normalize(x, p=2, dim=-1)
+        x_list = [x]
 
-    def compute_aggregations(self, data: Data) -> Data:
-        with console.status('computing aggregations'):
-            x = F.normalize(data.x, p=2, dim=-1)
-            x_list = [x]
+        for _ in range(self.hops):
+            x = self._aggregate(x, self.data.adj_t)
+            x = self._normalize(x)
+            x_list.append(x)
 
-            for _ in range(self.hops):
-                x = self._aggregate(x, data.adj_t)
-                x = self._normalize(x)
-                x_list.append(x)
-
-            data.x = torch.stack(x_list, dim=-1)
-        return data
-
-    def configure_encoder_optimizer(self) -> Optimizer:
-        Optim = {'sgd': SGD, 'adam': Adam}[self.optimizer_name]
-        return Optim(self._encoder.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        self.data.x = torch.stack(x_list, dim=-1)
+        self.data.aggs_ready = True

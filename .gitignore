@@ -130,3 +130,4 @@ TODO
 /__test*
 /figs
 /notebooks
+/lightning_logs

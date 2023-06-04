@@ -11,9 +11,6 @@ from rich.highlighter import ReprHighlighter
 class TrainerProgress(Progress):
     def __init__(self, 
                  num_epochs: int, 
-                 num_train_steps: int, 
-                 num_val_steps: int, 
-                 num_test_steps: int,
                  **kwargs
                  ):
 
@@ -32,9 +29,9 @@ class TrainerProgress(Progress):
 
         self.trainer_tasks = {
             'epoch': self.add_task(total=num_epochs, metrics='', unit='epochs', description='overal progress'),
-            'train': self.add_task(total=num_train_steps, metrics='', unit='steps', description='training', visible=False),
-            'val':   self.add_task(total=num_val_steps, metrics='', unit='steps', description='validation', visible=False),
-            'test':  self.add_task(total=num_test_steps, metrics='', unit='steps', description='testing', visible=False),
+            'train': self.add_task(metrics='', unit='steps', description='training', visible=False),
+            'val':   self.add_task(metrics='', unit='steps', description='validation', visible=False),
+            'test':  self.add_task(metrics='', unit='steps', description='testing', visible=False),
         }
 
         self.max_rows = 0

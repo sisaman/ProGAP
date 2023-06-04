@@ -18,6 +18,7 @@ class EncoderModule(MLPNodeClassifier):
                  dropout: float = 0.0, 
                  activation_fn: Callable[[Tensor], Tensor] = torch.relu_, 
                  batch_norm: bool = False,
+                 **kwargs,
                  ):
 
         super().__init__(
@@ -27,6 +28,7 @@ class EncoderModule(MLPNodeClassifier):
             dropout=dropout,
             activation_fn=activation_fn,
             batch_norm=batch_norm,
+            **kwargs,
         )
 
         self.encoder_mlp = MLP(
@@ -54,10 +56,8 @@ class EncoderModule(MLPNodeClassifier):
         x = super().forward(x)
         return x
 
-    @torch.no_grad()
     def predict(self, data: Data) -> Tensor:
-        self.eval()
-        x = data.x
+        x = data.x[data.batch_nodes]
         x = self.encoder_mlp(x)
         if self.normalize:
             x = F.normalize(x, p=2, dim=-1)

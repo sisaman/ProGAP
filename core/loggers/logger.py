@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from torch.nn import Module
-from core import console
 from core.args.utils import ArgInfo
 from core.loggers.base import LoggerBase
 from core.loggers.dummy import DummyLogger
@@ -18,18 +17,14 @@ class Logger(LoggerBase):
         project:    Annotated[str,  ArgInfo(help="project name for logger")] = 'ProGAP',
         output_dir: Annotated[str,  ArgInfo(help="directory to store the results")] = './output',
         config:     dict = {},
-        debug:      bool = False,
+        prefix:     str = '',
         ) -> None:
         
-        if debug:
-            logger = 'wandb'
-            project += '-Test'
-            console.warning(f'debug mode enabled! wandb logger is active for project {project}')
-
         self.logger_name = logger
         self.project = project
         self.output_dir = output_dir
         self.config = config
+        self.prefix = prefix
 
         if self.logger_name == 'wandb':
             self.logger = WandbLogger(
@@ -45,9 +40,11 @@ class Logger(LoggerBase):
         return self.logger.experiment
 
     def log(self, metrics: dict[str, object]):
+        metrics = self._add_prefix(metrics)
         self.logger.log(metrics)
     
     def log_summary(self, metrics: dict[str, object]):
+        metrics = self._add_prefix(metrics)
         self.logger.log_summary(metrics)
 
     def watch(self, model: Module, **kwargs):
@@ -55,3 +52,9 @@ class Logger(LoggerBase):
     
     def finish(self):
         self.logger.finish()
+
+    def set_prefix(self, prefix: str):
+        self.prefix = prefix
+
+    def _add_prefix(self, metrics: dict[str, object]) -> dict[str, object]:
+        return {f'{self.prefix}{metric}': value for metric, value in metrics.items()}

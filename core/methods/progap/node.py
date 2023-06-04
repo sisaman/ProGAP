@@ -2,7 +2,6 @@ import numpy as np
 from typing import Annotated, Literal, Union
 from torch.nn import BatchNorm1d, GroupNorm
 from torch_geometric.data import Data
-from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
@@ -11,7 +10,7 @@ from core.nn.nap import NAP
 from core.privacy.mechanisms.composed import ComposedNoisyMechanism
 from core.privacy.algorithms.noisy_sgd import NoisySGD
 from core.data.transforms.bound_degree import BoundOutDegree
-from core.modules.base import Metrics, Phase, TrainableModule
+from core.modules.base import Metrics, Phase
 from opacus.validators import ModuleValidator
 from opacus.validators.utils import register_module_fixer
 
@@ -46,11 +45,11 @@ class NodeLevelProGAP (ProGAP):
         self.max_grad_norm = max_grad_norm
         self.num_train_nodes = None  # will be used to set delta if it is 'auto'
 
-        self.model = ModuleValidator.fix(self.model)
-        ModuleValidator.validate(self.model, strict=True)    
-
         # Noise std of NAP is set to 0, and will be calibrated later
         self.nap = NAP(noise_std=0, sensitivity=np.sqrt(max_degree))
+
+        self.classifier = ModuleValidator.fix(self.classifier)
+        ModuleValidator.validate(self.classifier, strict=True)
 
     def calibrate(self):
         n = self.num_stages
@@ -59,7 +58,7 @@ class NodeLevelProGAP (ProGAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.epochs,
+            epochs=self.trainer.epochs,
             max_grad_norm=self.max_grad_norm,
         )
 
@@ -80,30 +79,34 @@ class NodeLevelProGAP (ProGAP):
             self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-        
-    def set_stage(self, stage: int) -> None:
-        super().set_stage(stage)
-        self.noisy_sgd.prepare_module(self.model)
+        self.prepare_classifier()
 
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
-        num_train_nodes = data.train_mask.sum().item()
+    def prepare_classifier(self) -> None:
+        original_set_stage = self.classifier.set_stage
+        self.classifier.set_stage = self.wrap_set_stage(original_set_stage)
+
+    def wrap_set_stage(self, original_set_stage):
+        def set_stage(stage: int) -> None:
+            original_set_stage(stage)
+            self.noisy_sgd.prepare_trainable_module(self.classifier)
+        return set_stage
+
+    def fit(self) -> Metrics:
+        num_train_nodes = self.data.train_mask.sum().item()
 
         if num_train_nodes != self.num_train_nodes:
             self.num_train_nodes = num_train_nodes
             self.calibrate()
 
+        return super().fit()
+    
+    def set_data(self, data: Data) -> Data:
         with console.status('bounding the number of neighbors per node'):
             data = BoundOutDegree(self.max_degree)(data)
+        return super().set_data(data)
 
-        return super().fit(data, prefix=prefix)
-
-    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
-        dataloader = super().data_loader(data, phase)
+    def data_loader(self, phase: Phase) -> NodeDataLoader:
+        dataloader = super().data_loader(phase)
         if phase == 'train':
             dataloader.poisson_sampling = True
         return dataloader
-
-    def configure_optimizer(self, module: TrainableModule) -> DPOptimizer:
-        optimizer = super().configure_optimizer(module)
-        optimizer = self.noisy_sgd.prepare_optimizer(optimizer)
-        return optimizer

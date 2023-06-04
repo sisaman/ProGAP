@@ -1,9 +1,7 @@
 import numpy as np
 from typing import Annotated, Literal, Union
-from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
-from core.data.utils import num_edges
 from core.methods.progap.base import ProGAP
 from core.nn.nap import NAP
 from core.privacy.mechanisms.composed import ComposedGaussianMechanism
@@ -48,10 +46,10 @@ class EdgeLevelProGAP (ProGAP):
             
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
-        m = num_edges(data)
+    def fit(self) -> Metrics:
+        m = self.data.num_edges
         if self.num_edges != m:
             self.num_edges = m
             self.calibrate()
 
-        return super().fit(data, prefix=prefix)
+        return super().fit()

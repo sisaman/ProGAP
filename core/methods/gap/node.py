@@ -3,7 +3,6 @@ import torch
 from torch import Tensor
 from typing import Annotated, Literal, Union
 from torch_geometric.data import Data
-from opacus.optimizers import DPOptimizer
 from core import console
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
@@ -48,7 +47,7 @@ class NodeLevelGAP (GAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.epochs,
+            epochs=self.encoder_trainer.epochs,
             max_grad_norm=self.max_grad_norm,
         )
 
@@ -56,7 +55,7 @@ class NodeLevelGAP (GAP):
             noise_scale=0.0, 
             dataset_size=self.num_train_nodes, 
             batch_size=self.batch_size, 
-            epochs=self.epochs,
+            epochs=self.trainer.epochs,
             max_grad_norm=self.max_grad_norm,
         )
 
@@ -77,40 +76,31 @@ class NodeLevelGAP (GAP):
             self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-        self._encoder = self.encoder_noisy_sgd.prepare_module(self._encoder)
-        self._classifier = self.classifier_noisy_sgd.prepare_module(self._classifier)
+        self.encoder_noisy_sgd.prepare_trainable_module(self.encoder)
+        self.classifier_noisy_sgd.prepare_trainable_module(self.classifier)
 
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
-        num_train_nodes = data.train_mask.sum().item()
+    def fit(self) -> Metrics:
+        num_train_nodes = self.data.train_mask.sum().item()
 
         if num_train_nodes != self.num_train_nodes:
             self.num_train_nodes = num_train_nodes
             self.calibrate()
 
-        return super().fit(data, prefix=prefix)
+        return super().fit()
 
-    def compute_aggregations(self, data: Data) -> Data:
+    def set_data(self, data: Data) -> Data:
         with console.status('bounding the number of neighbors per node'):
             data = BoundOutDegree(self.max_degree)(data)
-        return super().compute_aggregations(data)
+        return super().set_data(data)
 
     def _aggregate(self, x: Tensor, adj_t: Tensor) -> Tensor:
         x = torch.spmm(adj_t, x)
         x = self.pma_mechanism(x, sensitivity=np.sqrt(self.max_degree))
         return x
 
-    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
-        dataloader = super().data_loader(data, phase)
+    def data_loader(self, phase: Phase) -> NodeDataLoader:
+        dataloader = super().data_loader(phase)
         if phase == 'train':
             dataloader.poisson_sampling = True
         return dataloader
 
-    def configure_optimizer(self) -> DPOptimizer:
-        optimizer = super().configure_optimizer()
-        optimizer = self.classifier_noisy_sgd.prepare_optimizer(optimizer)
-        return optimizer
-
-    def configure_encoder_optimizer(self) -> DPOptimizer:
-        optimizer = super().configure_encoder_optimizer()
-        optimizer = self.encoder_noisy_sgd.prepare_optimizer(optimizer)
-        return optimizer

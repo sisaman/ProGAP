@@ -1,0 +1,1 @@
+python train.py gap node --dataset facebook --hidden_dim 16 --activation selu --optimizer adam --learning_rate 0.01 --repeats 1 --epochs 10 --batch_size 256 --encoder_layers 2 --base_layers 1 --head_layers 1 --combine cat --hops 3 --max_degree 100 --max_grad_norm 1.0 --epsilon 8 $@

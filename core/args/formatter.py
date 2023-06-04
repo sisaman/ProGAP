@@ -212,8 +212,6 @@ class RichHelpFormatter(argparse.HelpFormatter):
     # Rich version of HelpFormatter methods
     # =====================================
     def _rich_expand_help(self, action: argparse.Action) -> Text:
-        from rich.markup import escape
-        from rich.highlighter import ReprHighlighter
 
         params = dict(vars(action), prog=self._prog)
         for name in list(params):

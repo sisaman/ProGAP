@@ -16,9 +16,10 @@ class ClassificationModule(MLPNodeClassifier):
                  activation_fn: Callable[[Tensor], Tensor] = torch.relu_,
                  dropout: float = 0.0, 
                  batch_norm: bool = False,
+                 **kwargs,
                  ):
 
-        super().__init__(num_classes=num_classes)  # this is dummy, but necessary
+        super().__init__(num_classes=num_classes, **kwargs)  # this is dummy, but necessary
 
         self.model = MultiMLP(
             num_channels=num_channels,

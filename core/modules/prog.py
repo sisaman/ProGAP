@@ -22,9 +22,10 @@ class ProgressiveModule(TrainableModule):
                  activation_fn: Callable[[Tensor], Tensor] = torch.relu_, 
                  batch_norm: bool = True,
                  layerwise: bool = False,
+                 **kwargs,
                  ):
 
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.num_classes = num_classes
         self.num_stages = num_stages
@@ -113,20 +114,18 @@ class ProgressiveModule(TrainableModule):
         y = data.y[data.batch_nodes]
         
         preds: Tensor = self(xs)[1]
-        acc = preds.argmax(dim=1).eq(y).float().mean() * 100
-        metrics = {'acc': acc}
+        acc = preds.detach().argmax(dim=1).eq(y).float().mean() * 100
+        metrics = {f'{phase}/acc': acc}
 
         loss = None
         if phase != 'test':
             loss = F.cross_entropy(input=preds, target=y)
-            metrics['loss'] = loss.detach()
+            metrics[f'{phase}/loss'] = loss.detach()
 
         return loss, metrics
 
-    @torch.no_grad()
-    def predict(self, data: Data) -> Tensor:
-        self.eval()
-        xs = [data[f'x{i}'] for i in range(self.current_stage + 1)]
+    def predict(self, data: Data) -> tuple[Tensor, Tensor]:
+        xs = [data[f'x{i}'][data.batch_nodes] for i in range(self.current_stage + 1)]
         x, y = self(xs)
         return x, torch.softmax(y, dim=-1)
         

@@ -1,125 +1,108 @@
-from typing import Annotated, Literal, Optional, Union
-import torch
+from abc import ABC, abstractmethod
+from typing import Annotated, Literal, Union
 from torch import Tensor
-from torch.optim import Adam, SGD, Optimizer
 from torch_geometric.data import Data
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
-from core import globals
+from core import globals, console
 from core.modules.base import TrainableModule, Metrics, Phase
-from core import console
 from core.trainer.trainer import Trainer
 
 
-class NodeClassification:
+class NodeClassification(ABC):
     def __init__(self, 
-                 num_classes:     int, 
-                 epochs:          Annotated[int,   ArgInfo(help='number of epochs for training')] = 100,
-                 optimizer:       Annotated[str,   ArgInfo(help='optimization algorithm', choices=['sgd', 'adam'])] = 'adam',
-                 learning_rate:   Annotated[float, ArgInfo(help='learning rate', option='--lr')] = 0.01,
-                 weight_decay:    Annotated[float, ArgInfo(help='weight decay (L2 penalty)')] = 0.0,
-                 batch_size:      Annotated[Union[Literal['full'], int],   
-                                                   ArgInfo(help='batch size, or "full" for full-batch training')] = 'full',
-                 full_batch_eval: Annotated[bool,  ArgInfo(help='if true, then model uses full-batch evaluation')] = True,
-                 device:          Annotated[str,   ArgInfo(help='device to use', choices=['cpu', 'cuda'])] = 'cuda',
-                 **trainer_args:  Annotated[dict,  ArgInfo(help='extra options passed to the trainer class', bases=[Trainer])]
+                 num_classes:      int,
+                 batch_size:       Annotated[Union[Literal['full'], int],   
+                                                    ArgInfo(help='batch size, or "full" for full-batch training')] = 'full',
+                 full_batch_eval:  Annotated[bool,  ArgInfo(help='if true, then model uses full-batch evaluation')] = True,
+                 **trainer_args:   Annotated[dict,  ArgInfo(help='extra options passed to the trainer class', bases=[Trainer])]
                  ):
 
         self.num_classes = num_classes
-        self.epochs = epochs
-        self.optimizer_name = optimizer
-        self.learning_rate = learning_rate
-        self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.full_batch_eval = full_batch_eval
-        self.device = device
+        self.trainer_args = trainer_args
 
-        if self.device == 'cuda' and not torch.cuda.is_available():
-            console.warning('CUDA is not available, proceeding with CPU') 
-            self.device = 'cpu'
+        self.data = None
+        self.classifier = self.configure_classifier()
+        self.trainer = self.configure_trainer()
 
-        self.data = None  # data is kept for caching purposes
-        self.trainer = self.configure_trainer(**trainer_args)
-
-    @property
-    def classifier(self) -> TrainableModule:
-        """Return the underlying classifier."""
-        raise NotImplementedError
-
-    def reset_parameters(self):
+    def reset(self):
         self.classifier.reset_parameters()
-        self.trainer.reset()
+        self.trainer = self.configure_trainer()
         self.data = None
 
-    def fit(self, data: Data, prefix: str = '') -> Metrics:
-        """Fit the model to the given data."""
-        self.data = data.to(self.device, non_blocking=True)
-        train_metrics = self._train(self.data, prefix=prefix)
-        test_metrics = self.test(self.data, prefix=prefix)
-        return {**train_metrics, **test_metrics}
+    @abstractmethod
+    def configure_classifier(self) -> TrainableModule:
+        """Configure the classifier module."""
 
-    def test(self, data: Optional[Data] = None, prefix: str = '') -> Metrics:
-        """Predict the labels for the given data, or the training data if data is None."""
-        if data is None:
-            data = self.data
+    def configure_trainer(self) -> Trainer:
+        """Configure the trainer"""
+        trainer = Trainer(**self.trainer_args)
+        return trainer
+
+    def set_data(self, data: Data) -> Data:
+        """Set the data for the method."""
+        with console.status('moving data to device'):
+            data = self.to_device(data)
         
-        data = data.to(self.device, non_blocking=True)
+        self.data = Data(**data.to_dict())
+        return self.data
 
-        test_metics = self.trainer.test(
-            dataloader=self.data_loader(data, 'test'),
-            prefix=prefix,
-        )
-
-        return test_metics
-
-    def predict(self, data: Optional[Data] = None) -> Tensor:
-        """Predict the labels for the given data, or the training data if data is None."""
-        if data is None:
-            data = self.data
-
-        data = data.to(self.device, non_blocking=True)
-        return self.classifier.predict(data)
-
-    def _train(self, data: Data, prefix: str = '') -> Metrics:
-        console.info('training classifier')
-        self.classifier.to(self.device)
-
+    def run(self, data: Data, fit: bool = True, test: bool = True) -> Metrics:
+        """Setup the model for the given data, and run the training and testing procedures."""
+        metrics = {}
+        self.set_data(data)
+        
+        if fit:
+            train_metrics = self.fit()
+            metrics.update(train_metrics)
+        if test:
+            test_metrics = self.test()
+            metrics.update(test_metrics)
+        
+        return metrics
+    
+    def fit(self) -> Metrics:    
+        """Fit the method to the given data."""    
         metrics = self.trainer.fit(
             model=self.classifier,
-            epochs=self.epochs,
-            optimizer=self.configure_optimizer(),
-            train_dataloader=self.data_loader(data, 'train'), 
-            val_dataloader=self.data_loader(data, 'val'),
-            test_dataloader=self.data_loader(data, 'test') if globals['debug'] else None,
-            checkpoint=True,
-            prefix=prefix,
+            train_dataloader=self.data_loader('train'), 
+            val_dataloader=self.data_loader('val'),
+            test_dataloader=self.data_loader('test') if globals['debug'] else None,
         )
 
         return metrics
 
-    def configure_trainer(self, **kwargs) -> Trainer:
-        trainer = Trainer(
-            monitor='val/acc', 
-            monitor_mode='max', 
-            **kwargs
+    def test(self) -> Metrics:
+        """Test the method on the given data."""
+        return self.trainer.test(
+            dataloader=self.data_loader('test')
         )
-        return trainer
 
-    def configure_optimizer(self) -> Optimizer:
-        Optim = {'sgd': SGD, 'adam': Adam}[self.optimizer_name]
-        return Optim(self.classifier.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+    def predict(self) -> Tensor:
+        """Predict output for the given data."""
+        return self.trainer.predict(
+            dataloader=self.data_loader('predict'),
+        )
 
-    def data_loader(self, data: Data, phase: Phase) -> NodeDataLoader:
+    def data_loader(self, phase: Phase) -> NodeDataLoader:
         """Return a dataloader for the given phase."""
-        
         batch_size = 'full' if (phase != 'train' and self.full_batch_eval) else self.batch_size
+        subset = self.data[f'{phase}_mask'] if phase != 'predict' else None
+        shuffle = phase == 'train'
+
         dataloader = NodeDataLoader(
-            data=data, 
-            subset=data[f'{phase}_mask'],
+            data=self.data, 
+            subset=subset,
             batch_size=batch_size, 
-            shuffle=(phase == 'train'), 
-            drop_last=True,
+            shuffle=shuffle, 
+            drop_last=phase == 'train',
             poisson_sampling=False,
         )
 
         return dataloader
+    
+    def to_device(self, data: Union[Data, Tensor]):
+        """Move the data to the device."""
+        return self.trainer.to_device(data)
