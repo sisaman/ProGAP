@@ -41,11 +41,6 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
     globals['logger'] = logger
     del kwargs['logger']
 
-    ### setup logger ###
-    logger_args = strip_kwargs(Logger, kwargs)
-    logger = Logger(config=kwargs, debug=debug, **logger_args)
-    globals['logger'] = logger
-
     with console.status('loading dataset'):
         loader_args = strip_kwargs(DatasetLoader, kwargs)
         data = DatasetLoader(**loader_args).load(verbose=True)
