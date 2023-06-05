@@ -5,6 +5,7 @@ from core.methods.progap.base import ProGAP
 from core.methods.progap.edge import EdgeLevelProGAP
 from core.methods.progap.node import NodeLevelProGAP
 from core.methods.mlp.edge import SimpleMLP
+from core.methods.mlp.node import PrivateMLP
 
 
 supported_methods = {
@@ -20,5 +21,6 @@ supported_methods = {
     },
     'mlp': {
         'edge': SimpleMLP,
+        'node': PrivateMLP,
     },
 }
