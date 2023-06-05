@@ -4,7 +4,7 @@ from core.methods.gap.node import NodeLevelGAP
 from core.methods.progap.base import ProGAP
 from core.methods.progap.edge import EdgeLevelProGAP
 from core.methods.progap.node import NodeLevelProGAP
-from core.methods.mlp.base import SimpleMLP
+from core.methods.mlp.edge import SimpleMLP
 
 
 supported_methods = {
