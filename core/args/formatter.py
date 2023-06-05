@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import TYPE_CHECKING, Callable, ClassVar, Iterable, Iterator
+from typing import Callable, ClassVar, Iterable, Iterator
+# from typing import TYPE_CHECKING
 
 # rich is only used to display help. It is imported inside the functions in order
 # not to add delays to command line tools that use this formatter.
-if TYPE_CHECKING:
-    from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
-    from rich.containers import Lines
-    from rich.style import StyleType
-    from rich.text import Span, Text
-    from rich.highlighter import ReprHighlighter
+# if TYPE_CHECKING:
+from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
+from rich.containers import Lines
+from rich.style import StyleType
+from rich.text import Span, Text
+from rich.highlighter import ReprHighlighter
 
 __all__ = [
     "RichHelpFormatter",
