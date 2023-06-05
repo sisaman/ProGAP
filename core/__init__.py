@@ -3,11 +3,19 @@ import logging
 import warnings
 from rich.traceback import install
 from rich.logging import RichHandler
+from torch.nn import BatchNorm1d, GroupNorm
+from opacus.validators.utils import register_module_fixer
 from core.console.console import Console
+
 
 globals = {
     'debug': False,
 }
+
+
+@register_module_fixer([BatchNorm1d])
+def fix(module: BatchNorm1d) -> GroupNorm:
+    return GroupNorm(1, module.num_features, affine=module.affine)
 
 
 # define main and error consoles

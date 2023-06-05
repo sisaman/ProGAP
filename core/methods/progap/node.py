@@ -1,6 +1,5 @@
 import numpy as np
 from typing import Annotated, Literal, Union
-from torch.nn import BatchNorm1d, GroupNorm
 from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
@@ -12,12 +11,6 @@ from core.privacy.algorithms.noisy_sgd import NoisySGD
 from core.data.transforms.bound_degree import BoundOutDegree
 from core.modules.base import Metrics, Phase
 from opacus.validators import ModuleValidator
-from opacus.validators.utils import register_module_fixer
-
-
-@register_module_fixer([BatchNorm1d])
-def fix(module: BatchNorm1d) -> GroupNorm:
-    return GroupNorm(1, module.num_features, affine=module.affine)
 
 
 class NodeLevelProGAP (ProGAP):
