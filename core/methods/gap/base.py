@@ -2,6 +2,7 @@ from typing import Annotated
 import torch
 from torch import Tensor
 import torch.nn.functional as F
+from class_resolver.contrib.torch import activation_resolver
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.base import NodeClassification
@@ -14,12 +15,6 @@ from core.modules.em import EncoderModule
 class GAP (NodeClassification):
     """Non-private GAP method"""
 
-    supported_activations = {
-        'relu': torch.relu_,
-        'selu': torch.selu_,
-        'tanh': torch.tanh,
-    }
-
     def __init__(self,
                  num_classes,
                  hops:            Annotated[int,   ArgInfo(help='number of hops', option='-k')] = 2,
@@ -28,7 +23,7 @@ class GAP (NodeClassification):
                  base_layers:     Annotated[int,   ArgInfo(help='number of base MLP layers')] = 1,
                  head_layers:     Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
                  combine:         Annotated[str,   ArgInfo(help='combination type of transformed hops', choices=MultiMLP.supported_combinations)] = 'cat',
-                 activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=supported_activations)] = 'selu',
+                 activation:      Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:         Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:      Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
                  optimizer:       Annotated[str,   ArgInfo(help='optimization algorithm', choices=['sgd', 'adam'])] = 'adam',
@@ -44,7 +39,7 @@ class GAP (NodeClassification):
         self.base_layers = base_layers
         self.head_layers = head_layers
         self.combine = combine
-        self.activation_fn = self.supported_activations[activation]
+        self.activation_fn = activation_resolver.make(activation)
         self.dropout = dropout
         self.batch_norm = batch_norm
         self.optimizer = optimizer
