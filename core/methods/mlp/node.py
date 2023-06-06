@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Annotated, Literal, Union
 from opacus.validators import ModuleValidator
+from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.mlp.edge import SimpleMLP
@@ -54,14 +55,13 @@ class PrivateMLP (SimpleMLP):
 
         self.noisy_sgd.prepare_trainable_module(self.classifier)
 
-    def fit(self) -> Metrics:
+    def setup(self, data: Data) -> None:
+        super().setup(data)
         num_train_nodes = self.data.train_mask.sum().item()
 
         if num_train_nodes != self.num_train_nodes:
             self.num_train_nodes = num_train_nodes
             self.calibrate()
-
-        return super().fit()
 
     def data_loader(self, phase: Phase) -> NodeDataLoader:
         dataloader = super().data_loader(phase)

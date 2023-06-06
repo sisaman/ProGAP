@@ -1,5 +1,7 @@
 import numpy as np
 from typing import Annotated, Literal, Union
+
+from torch_geometric.data import Data
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.progap.base import ProGAP
@@ -46,10 +48,9 @@ class EdgeLevelProGAP (ProGAP):
             
             console.info(f'noise scale: {self.noise_scale:.4f}\n')
 
-    def fit(self) -> Metrics:
+    def setup(self, data: Data) -> None:
+        super().setup(data)
         m = self.data.num_edges
         if self.num_edges != m:
             self.num_edges = m
             self.calibrate()
-
-        return super().fit()

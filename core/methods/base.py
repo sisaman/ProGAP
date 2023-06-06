@@ -41,18 +41,17 @@ class NodeClassification(ABC):
         trainer = Trainer(**self.trainer_args)
         return trainer
 
-    def set_data(self, data: Data) -> Data:
-        """Set the data for the method."""
+    def setup(self, data: Data) -> None:
+        """Setup method for the given data."""
         with console.status('moving data to device'):
             data = self.to_device(data)
         
         self.data = Data(**data.to_dict())
-        return self.data
 
     def run(self, data: Data, fit: bool = True, test: bool = True) -> Metrics:
         """Setup the model for the given data, and run the training and testing procedures."""
         metrics = {}
-        self.set_data(data)
+        self.setup(data)
         
         if fit:
             train_metrics = self.fit()
