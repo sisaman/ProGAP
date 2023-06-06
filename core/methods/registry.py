@@ -7,6 +7,7 @@ from core.methods.progap.node import NodeLevelProGAP
 from core.methods.mlp.edge import SimpleMLP
 from core.methods.mlp.node import PrivateMLP
 from core.methods.gnn.base import StandardGNN
+from core.methods.gnn.edge import EdgeLevelGNN
 
 
 supported_methods = {
@@ -26,5 +27,6 @@ supported_methods = {
     },
     'gnn': {
         'none': StandardGNN,
+        'edge': EdgeLevelGNN,
     },
 }
