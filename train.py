@@ -30,8 +30,9 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
     if debug:
         console.warning('debug mode enabled')
         globals['debug'] = True
-        kwargs['log_trainer'] = True
         console.log_level = console.DEBUG
+        kwargs['logger'] = 'wandb'
+        kwargs['log_trainer'] = True
         kwargs['project'] += '-debug'
         console.warning(f'wandb logger is active for project {kwargs["project"]}')
 
