@@ -21,8 +21,8 @@ class EdgeLevelGNN (StandardGNN):
 
     def perturb_data(self, data: Data) -> Data:
         with console.status('perturbing graph structure'):
-            adj_t = SparseTensor.from_torch_sparse_csr_tensor(data.adj_t)
-            adj_t = self.mechanism(adj_t, chunk_size=1000)
+            adj_t = SparseTensor.from_torch_sparse_csr_tensor(data.adj_t, has_value=False)
+            adj_t = self.mechanism(adj_t, chunk_size=500)
             data.adj_t = adj_t.to_torch_sparse_csr_tensor()
         return data
 

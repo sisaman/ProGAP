@@ -38,7 +38,11 @@ class AsymmetricRandResponse:
         pr_1to1 = p * q
         pr_0to1 = (1 - p) * q
         mask = adj_t.set_value(None).to_dense(dtype=torch.bool)
-        out = mask * pr_1to1 + (~mask) * pr_0to1
+        # out = mask * pr_1to1 + (~mask) * pr_0to1
+        out = mask * pr_1to1
+        mask.logical_not_()
+        temp = mask * pr_0to1
+        out.add_(temp)
         torch.bernoulli(out, out=out)
         out = SparseTensor.from_dense(out, has_value=False)
         return out
