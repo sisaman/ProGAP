@@ -15,11 +15,11 @@ class StandardGNN (NodeClassification):
                  hidden_dim:            Annotated[int,   ArgInfo(help='dimension of the hidden layers')] = 16,
                  base_layers:           Annotated[int,   ArgInfo(help='number of base MLP layers')] = 1,
                  mp_layers:             Annotated[int,   ArgInfo(help='number of message passing layers')] = 2,
-                 head_layers:           Annotated[int,   ArgInfo(help='number of head MLP layers')] = 0,
+                 head_layers:           Annotated[int,   ArgInfo(help='number of head MLP layers')] = 1,
                  activation:            Annotated[str,   ArgInfo(help='type of activation function', choices=['relu', 'selu', 'tanh'])] = 'selu',
                  dropout:               Annotated[float, ArgInfo(help='dropout rate')] = 0.0,
                  batch_norm:            Annotated[bool,  ArgInfo(help='if true, then model uses batch normalization')] = True,
-                 jk:                    Annotated[str,   ArgInfo(help='the jumping knowledge mode.', choices=["last", "cat", "max", "lstm"])] = None,
+                 jk:                    Annotated[str,   ArgInfo(help='the jumping knowledge mode.', choices=["last", "cat", "max", "lstm"])] = 'cat',
                  # sage args
                  sage_aggr:             Annotated[str,   ArgInfo(help='SAGE: type of aggregation function', choices=['mean', 'sum', 'max', 'lstm'])] = 'mean',
                  sage_root_weight:      Annotated[bool,  ArgInfo(help='SAGE: if true, will add transformed root node features to the output')] = True,
