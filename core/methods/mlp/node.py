@@ -6,7 +6,7 @@ from core import console
 from core.args.utils import ArgInfo
 from core.methods.mlp.edge import SimpleMLP
 from core.privacy.algorithms.noisy_sgd import NoisySGD
-from core.modules.base import Metrics, Phase
+from core.modules.base import Phase
 from core.data.loader.node import NodeDataLoader
 
 
@@ -66,5 +66,5 @@ class PrivateMLP (SimpleMLP):
     def data_loader(self, phase: Phase) -> NodeDataLoader:
         dataloader = super().data_loader(phase)
         if phase == 'train':
-            dataloader.poisson_sampling = True
+            dataloader = self.noisy_sgd.prepare_dataloader(dataloader)
         return dataloader

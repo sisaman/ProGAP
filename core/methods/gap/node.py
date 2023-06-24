@@ -11,7 +11,7 @@ from core.privacy.mechanisms.composed import ComposedNoisyMechanism
 from core.privacy.algorithms.pma import PMA
 from core.privacy.algorithms.noisy_sgd import NoisySGD
 from core.data.transforms.bound_degree import BoundOutDegree
-from core.modules.base import Metrics, Phase
+from core.modules.base import Phase
 
 
 class NodeLevelGAP (GAP):
@@ -94,10 +94,18 @@ class NodeLevelGAP (GAP):
         x = torch.spmm(adj_t, x)
         x = self.pma_mechanism(x, sensitivity=np.sqrt(self.max_degree))
         return x
+    
+    def fit_encoder(self):
+        self.noisy_sgd = self.encoder_noisy_sgd
+        return super().fit_encoder()
+    
+    def fit(self):
+        self.noisy_sgd = self.classifier_noisy_sgd
+        return super().fit()
 
     def data_loader(self, phase: Phase) -> NodeDataLoader:
         dataloader = super().data_loader(phase)
         if phase == 'train':
-            dataloader.poisson_sampling = True
+            dataloader = self.noisy_sgd.prepare_dataloader(dataloader)
         return dataloader
 

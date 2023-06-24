@@ -9,7 +9,7 @@ from core.nn.nap import NAP
 from core.privacy.mechanisms.composed import ComposedNoisyMechanism
 from core.privacy.algorithms.noisy_sgd import NoisySGD
 from core.data.transforms.bound_degree import BoundOutDegree
-from core.modules.base import Metrics, Phase
+from core.modules.base import Phase
 from opacus.validators import ModuleValidator
 
 
@@ -98,5 +98,5 @@ class NodeLevelProGAP (ProGAP):
     def data_loader(self, phase: Phase) -> NodeDataLoader:
         dataloader = super().data_loader(phase)
         if phase == 'train':
-            dataloader.poisson_sampling = True
+            dataloader = self.noisy_sgd.prepare_dataloader(dataloader)
         return dataloader
