@@ -12,63 +12,64 @@ def multiterm_dpsgd_privacy_accountant(num_training_steps,
                                        target_delta, num_samples,
                                        batch_size,
                                        max_terms_per_node):
-  """Computes epsilon after a given number of training steps with DP-SGD/Adam.
+    """Computes epsilon after a given number of training steps with DP-SGD/Adam.
 
-  Accounts for the exact distribution of terms in a minibatch,
-  assuming sampling of these without replacement.
+    Accounts for the exact distribution of terms in a minibatch,
+    assuming sampling of these without replacement.
 
-  Returns np.inf if the noise multiplier is too small.
+    Returns np.inf if the noise multiplier is too small.
 
-  Args:
-    num_training_steps: Number of training steps.
-    noise_multiplier: Noise multiplier that scales the sensitivity.
-    target_delta: Privacy parameter delta to choose epsilon for.
-    num_samples: Total number of samples in the dataset.
-    batch_size: Size of every batch.
-    max_terms_per_node: Maximum number of terms affected by the removal of a
-      node.
+    Args:
+        num_training_steps: Number of training steps.
+        noise_multiplier: Noise multiplier that scales the sensitivity.
+        target_delta: Privacy parameter delta to choose epsilon for.
+        num_samples: Total number of samples in the dataset.
+        batch_size: Size of every batch.
+        max_terms_per_node: Maximum number of terms affected by the removal of a
+            node.
 
-  Returns:
-    Privacy parameter epsilon.
-  """
-  if noise_multiplier < 1e-20:
-    return np.inf
+    Returns:
+        Privacy parameter epsilon.
+    """
+    if noise_multiplier < 1e-20:
+        return np.inf
 
-  # Compute distribution of terms.
-  terms_rv = scipy.stats.hypergeom(num_samples, max_terms_per_node, batch_size)
-  terms_logprobs = [
-      terms_rv.logpmf(i) for i in np.arange(max_terms_per_node + 1)
-  ]
+    # Compute distribution of terms.
+    terms_rv = scipy.stats.hypergeom(num_samples, max_terms_per_node, batch_size)
+    terms_logprobs = [
+        terms_rv.logpmf(i) for i in np.arange(max_terms_per_node + 1)
+    ]
 
-  # Compute unamplified RDPs (that is, with sampling probability = 1).
-  orders = np.arange(1, 10, 0.1)[1:]
+    # Compute unamplified RDPs (that is, with sampling probability = 1).
+    orders = np.arange(1, 10, 0.1)[1:]
 
-  accountant = dp_accounting.rdp.RdpAccountant(orders)
-  accountant.compose(dp_accounting.GaussianDpEvent(noise_multiplier))
-  unamplified_rdps = accountant._rdp  # pylint: disable=protected-access
+    accountant = dp_accounting.rdp.RdpAccountant(orders)
+    accountant.compose(dp_accounting.GaussianDpEvent(noise_multiplier))
+    unamplified_rdps = accountant._rdp  # pylint: disable=protected-access
 
-  # Compute amplified RDPs for each (order, unamplified RDP) pair.
-  amplified_rdps = []
-  for order, unamplified_rdp in zip(orders, unamplified_rdps):
-    beta = unamplified_rdp * (order - 1)
-    log_fs = beta * (
-        np.square(np.arange(max_terms_per_node + 1) / max_terms_per_node))
-    amplified_rdp = scipy.special.logsumexp(terms_logprobs + log_fs) / (
-        order - 1)
-    amplified_rdps.append(amplified_rdp)
+    # Compute amplified RDPs for each (order, unamplified RDP) pair.
+    amplified_rdps = []
+    for order, unamplified_rdp in zip(orders, unamplified_rdps):
+        beta = unamplified_rdp * (order - 1)
+        log_fs = beta * (
+            np.square(np.arange(max_terms_per_node + 1) / max_terms_per_node))
+        amplified_rdp = scipy.special.logsumexp(terms_logprobs + log_fs) / (
+            order - 1)
+        amplified_rdps.append(amplified_rdp)
 
-  # Verify lower bound.
-  amplified_rdps = np.asarray(amplified_rdps)
-  if not np.all(unamplified_rdps *
-                (batch_size / num_samples)**2 <= amplified_rdps + 1e-6):
-    raise ValueError('The lower bound has been violated. Something is wrong.')
+    # Verify lower bound.
+    amplified_rdps = np.asarray(amplified_rdps)
+    if not np.all(unamplified_rdps *
+                  (batch_size / num_samples) ** 2 <= amplified_rdps + 1e-6):
+        raise ValueError('The lower bound has been violated. Something is wrong.')
 
-  # Account for multiple training steps.
-  amplified_rdps_total = amplified_rdps * num_training_steps
+    # Account for multiple training steps.
+    amplified_rdps_total = amplified_rdps * num_training_steps
 
-  # Convert to epsilon-delta DP.
-  return dp_accounting.rdp.compute_epsilon(orders, amplified_rdps_total,
-                                           target_delta)[0]
+    # Convert to epsilon-delta DP.
+    return dp_accounting.rdp.compute_epsilon(orders, amplified_rdps_total,
+                                             target_delta)[0]
+
 
 
 class GNNBasedNoisySGD(NoisySGD):
