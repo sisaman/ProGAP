@@ -48,7 +48,6 @@ class GAP (NodeClassification):
 
         super().__init__(num_classes, **kwargs)
 
-        self.encoder_trainer = self.configure_trainer()
         self.encoder = EncoderModule(
             num_classes=num_classes,
             hidden_dim=hidden_dim,
@@ -62,6 +61,9 @@ class GAP (NodeClassification):
             learning_rate=learning_rate,
             weight_decay=weight_decay,
         )
+
+        self.encoder_trainer = self.configure_trainer()
+        self.encoder_trainer.logger.set_prefix('encoder/')
 
     def reset(self):
         self.encoder.reset_parameters()
@@ -117,14 +119,12 @@ class GAP (NodeClassification):
         return F.normalize(x, p=2, dim=-1)
 
     def fit_encoder(self):
-        self.encoder_trainer.logger.set_prefix('encoder/')
         self.encoder_trainer.fit(
             model=self.encoder,
             train_dataloader=self.data_loader('train'), 
             val_dataloader=self.data_loader('val'),
             test_dataloader=None,
         )
-        self.encoder_trainer.logger.set_prefix('')
 
     def compute_aggregations(self):
         # extract node embeddings from encoder
