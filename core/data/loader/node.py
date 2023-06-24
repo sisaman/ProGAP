@@ -60,10 +60,7 @@ class NodeDataLoader:
                 self.node_indices = subset
         
         self.num_nodes = self.node_indices.size(0)
-        self.is_sparse = not hasattr(data, 'edge_index')
-
-        if not self.is_sparse and self.hops is not None and self.batch_size != 'full':
-            self.edge_index = to_edge_index(self.data.adj_t)
+        self.is_sparse = hasattr(data, 'adj_t') 
 
     def __iter__(self) -> Iterator[Data]:
         if self.batch_size == 'full':
@@ -90,6 +87,12 @@ class NodeDataLoader:
                 data = self.data
                 data.batch_nodes = batch_nodes
             else:
+                if not hasattr(self, 'edge_index'):
+                    if self.is_sparse:
+                        self.edge_index, _ = to_edge_index(self.data.adj_t)
+                    else:
+                        self.edge_index = self.data.edge_index
+
                 subset, batch_edge_index, mapping, _ = k_hop_subgraph(
                     node_idx=batch_nodes, 
                     num_hops=self.hops, 
@@ -98,15 +101,14 @@ class NodeDataLoader:
                     num_nodes=self.data.num_nodes
                 )
 
-                batch_mask = torch.zeros(subset.size(0), device=self.device, dtype=torch.bool)
-                batch_mask[mapping] = True
-
-                data = self.data.subgraph(subset)
-                data.edge_index = batch_edge_index
-                data.batch_nodes = mapping
+                data = Data(
+                    x=self.data.x[subset],
+                    y=self.data.y[subset],
+                    edge_index=batch_edge_index,
+                    batch_nodes=mapping,
+                )
                 
                 if self.is_sparse:
-                    del data.adj_t
                     data = ToSparseTensor(layout=torch.sparse_csr)(data)
             
             yield data
