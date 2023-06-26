@@ -5,10 +5,10 @@ from torch.optim import Optimizer
 from torch.types import Number
 from torchmetrics import MeanMetric
 from core.args.utils import ArgInfo
+from core.loggers.dummy import DummyLogger
 from core.loggers.logger import Logger
 from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, TrainableModule
-from core import globals
 from core.typing import Phase
 
 
@@ -19,15 +19,14 @@ class Trainer:
                  epochs:        Annotated[int,  ArgInfo(help='number of epochs for training')] = 100,
                  device:        Annotated[str,  ArgInfo(help='device to use for training', choices=['cpu', 'cuda', 'auto'])] = 'auto',
                  verbose:       Annotated[bool, ArgInfo(help='display progress')] = True,
-                 log_trainer:   Annotated[bool, ArgInfo(help='log all training steps')] = False,
+                 logger:        Logger = None,
                  ):
 
         self.epochs = epochs
         self.monitor = monitor
         self.monitor_mode = monitor_mode
         self.verbose = verbose
-        self.log_trainer = log_trainer
-        self.logger: Logger = globals['logger']
+        self.logger = logger or DummyLogger()
 
         # setup device
         if device == 'auto':
@@ -114,8 +113,7 @@ class Trainer:
 
                 # log and update progress
                 self.progress.update(task='epoch', metrics=metrics, advance=1)
-                if self.log_trainer:
-                    self.logger.log(metrics)
+                self.logger.log(metrics)
 
         if best_metrics is None:
             best_metrics = metrics
@@ -123,8 +121,7 @@ class Trainer:
             self.model.load_state_dict(best_state_dict)
 
         # log and return best metrics
-        if self.log_trainer:
-            self.logger.log_summary(best_metrics)
+        self.logger.log_summary(best_metrics)
 
         return best_metrics
 

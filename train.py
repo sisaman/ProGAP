@@ -18,9 +18,10 @@ with console.status('importing modules'):
     from torch_geometric import seed_everything
 
 
-def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 12345,
-        repeats:     Annotated[int,   ArgInfo(help='number of times the experiment is repeated')] = 1,
-        debug:       Annotated[bool,  ArgInfo(help='enable global debug mode')] = False,
+def run(seed:        Annotated[int,  ArgInfo(help='initial random seed')] = 12345,
+        repeats:     Annotated[int,  ArgInfo(help='number of times the experiment is repeated')] = 1,
+        log_trainer: Annotated[bool, ArgInfo(help='log all training steps')] = False,
+        debug:       Annotated[bool, ArgInfo(help='enable global debug mode')] = False,
         **kwargs
     ):
 
@@ -40,7 +41,6 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
     config = {**kwargs, 'seed': seed, 'repeats': repeats}
     logger_args = strip_kwargs(Logger, kwargs)
     logger = Logger(config=config, **logger_args)
-    globals['logger'] = logger
     del kwargs['logger']
 
     with console.status('loading dataset'):
@@ -51,6 +51,7 @@ def run(seed:        Annotated[int,   ArgInfo(help='initial random seed')] = 123
     num_classes = data.y.max().item() + 1
     Method = supported_methods[kwargs['method']][kwargs['level']]
     method_args = strip_kwargs(Method, kwargs)
+    method_args['logger'] = logger if log_trainer else None
     method: NodeClassification = Method(num_classes=num_classes, **method_args)
 
     ### run experiment ###
