@@ -9,6 +9,7 @@ from core.methods.mlp.edge import SimpleMLP
 from core.methods.mlp.node import PrivateMLP
 from core.methods.gnn.base import StandardGNN
 from core.methods.gnn.edge import EdgeLevelGNN
+from core.methods.lpgnet.base import LPGNet
 
 
 supported_methods = {
@@ -30,5 +31,8 @@ supported_methods = {
         'none': StandardGNN,
         'edge': EdgeLevelGNN,
         'node': NodeLevelGNN,
+    },
+    'lpgnet': {
+        'none': LPGNet,
     },
 }
