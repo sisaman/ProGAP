@@ -8,7 +8,6 @@ from core import console
 from core.args.utils import ArgInfo
 from core.methods.gap.base import GAP
 from core.privacy.algorithms.pma import PMA
-from core.modules.base import Metrics
 
 
 class EdgeLevelGAP (GAP):
