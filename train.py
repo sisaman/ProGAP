@@ -81,9 +81,7 @@ def run(seed:        Annotated[int,  ArgInfo(help='initial random seed')] = 1234
         ### reset method's parameters for the next run ###
         method.reset()
 
-    logger: Logger = globals['logger']
     summary = {}
-    
     for metric, values in run_metrics.items():
         summary[metric + '_mean'] = np.mean(values)
         summary[metric + '_std'] = np.std(values)
