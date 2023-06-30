@@ -29,13 +29,14 @@ def run(seed:        Annotated[int,  ArgInfo(help='initial random seed')] = 1234
 
     ### setup debug mode ###
     if debug:
-        console.warning('debug mode enabled')
         globals['debug'] = True
         console.log_level = console.DEBUG
+        log_trainer = True
         kwargs['logger'] = 'wandb'
         kwargs['log_trainer'] = True
         kwargs['project'] += '-debug'
-        console.warning(f'wandb logger is active for project {kwargs["project"]}')
+        console.debug('debug mode enabled')
+        console.debug(f'wandb logger is active for project {kwargs["project"]}')
 
     ### setup logger ###
     config = {**kwargs, 'seed': seed, 'repeats': repeats}
