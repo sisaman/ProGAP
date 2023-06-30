@@ -46,7 +46,7 @@ def run(seed:        Annotated[int,  ArgInfo(help='initial random seed')] = 1234
 
     with console.status('loading dataset'):
         loader_args = strip_kwargs(DatasetLoader, kwargs)
-        data = DatasetLoader(**loader_args).load(verbose=True)
+        data = DatasetLoader(**loader_args).load(verbose=kwargs['verbose'])
 
     ### initiallize method ###
     num_classes = data.y.max().item() + 1
