@@ -12,7 +12,7 @@ from core.data.transforms.remove_self_loops import RemoveSelfLoops
 from core.data.transforms.remove_isolated_nodes import RemoveIsolatedNodes
 from core.datasets.amazon import Amazon
 from core.datasets.facebook import Facebook
-from core.datasets.facebook import Facebook100
+from core.datasets.facebook import FB100
 from core.utils import dict2table
 
 
@@ -25,33 +25,37 @@ def load_wenet(root: str, transform=None) -> Data:
 class DatasetLoader:
     supported_datasets = {
         'reddit': partial(Reddit, 
-            transform=Compose([
+            pre_transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                FilterClassByCount(min_count=10000, remove_unlabeled=True)
+                FilterClassByCount(min_count=10000, remove_unlabeled=True),
+                RemoveSelfLoops(), RemoveIsolatedNodes(),
             ])
         ),
         'amazon': partial(Amazon, 
-            transform=Compose([
+            pre_transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                FilterClassByCount(min_count=100000, remove_unlabeled=True)
+                FilterClassByCount(min_count=100000, remove_unlabeled=True),
+                RemoveSelfLoops(), RemoveIsolatedNodes(),
             ])
         ),
         'facebook': partial(Facebook, name='UIllinois20', target='year', 
-            transform=Compose([
+            pre_transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                FilterClassByCount(min_count=1000, remove_unlabeled=True)
+                FilterClassByCount(min_count=1000, remove_unlabeled=True),
+                RemoveSelfLoops(), RemoveIsolatedNodes(),
             ])
         ),
-        'facebook-100': partial(Facebook100, target='year', 
-            transform=Compose([
+        'fb-100': partial(FB100, target='year', 
+            pre_transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                FilterClassByCount(min_count=100000, remove_unlabeled=True)
+                FilterClassByCount(min_count=100000, remove_unlabeled=True),
+                RemoveSelfLoops(), RemoveIsolatedNodes(),
             ])
         ),
         'wenet': partial(load_wenet,
             transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 
-                # FilterClassByCount(min_count=10000, remove_unlabeled=True)
+                RemoveSelfLoops(), RemoveIsolatedNodes(),
             ])
         ),
     }
@@ -66,7 +70,7 @@ class DatasetLoader:
 
     def load(self, verbose=False) -> Data:
         data = self.supported_datasets[self.name](root=os.path.join(self.data_dir, self.name))[0]
-        data = Compose([RemoveSelfLoops(), RemoveIsolatedNodes(), ToSparseTensor(layout=torch.sparse_csr)])(data)
+        data = ToSparseTensor(layout=torch.sparse_csr)(data)
 
         if verbose:
             self.print_stats(data)

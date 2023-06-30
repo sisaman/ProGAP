@@ -82,7 +82,7 @@ class Facebook(InMemoryDataset):
         return f'Facebook-{self.name}()'
 
 
-class Facebook100(InMemoryDataset):
+class FB100(InMemoryDataset):
     url = 'https://github.com/sisaman/pyg-datasets/raw/main/datasets/facebook100/'
     targets = ['status', 'gender', 'major', 'minor', 'housing', 'year']
     available_datasets = [
