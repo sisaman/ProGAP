@@ -40,7 +40,7 @@ class EdgeLevelProGAP (ProGAP):
             else:
                 composed_mechanism = ComposedNoisyMechanism(
                     noise_scale=1.0,
-                    mechanism_list=[self.nap.gm],
+                    mechanism_list=[self.nap.mechanism],
                     coeff_list=[self.num_stages - 1],
                 )
                 self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)

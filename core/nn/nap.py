@@ -10,10 +10,10 @@ class NAP(Module):
         super().__init__()
         self.sensitivity = sensitivity
         noise_scale = noise_std / sensitivity
-        self.gm = GaussianMechanism(noise_scale)
+        self.mechanism = GaussianMechanism(noise_scale)
 
     def forward(self, x: Tensor, adj_t: Tensor) -> Tensor:
-        x = F.normalize(x, p=2, dim=-1)             # normalize
-        x = torch.spmm(adj_t, x)                        # aggregate
-        x = self.gm.perturb(x, self.sensitivity)    # perturb
+        x = F.normalize(x, p=2, dim=-1)                     # normalize
+        x = torch.spmm(adj_t, x)                            # aggregate
+        x = self.mechanism.perturb(x, self.sensitivity)     # perturb
         return x

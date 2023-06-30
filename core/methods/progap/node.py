@@ -58,7 +58,7 @@ class NodeLevelProGAP (ProGAP):
         composed_mechanism = ComposedNoisyMechanism(
             noise_scale=1.0,
             mechanism_list=[
-                self.nap.gm, 
+                self.nap.mechanism, 
                 self.noisy_sgd
             ],
             coeff_list=[n - 1, n],
