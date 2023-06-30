@@ -1,6 +1,6 @@
 import torch
 from core.privacy.mechanisms.commons import GaussianMechanism, InfMechanism, ZeroMechanism
-from core.privacy.mechanisms.composed import ComposedGaussianMechanism
+from core.privacy.mechanisms.composed import ComposedNoisyMechanism
 from core.privacy.mechanisms.noisy import NoisyMechanism
 
 
@@ -17,7 +17,7 @@ class PMA(NoisyMechanism):
         elif noise_scale == 0.0:
             mech = InfMechanism()
         else:
-            mech = ComposedGaussianMechanism(
+            mech = ComposedNoisyMechanism(
                 noise_scale=noise_scale, 
                 mechanism_list=[self.gm], 
                 coeff_list=[hops]

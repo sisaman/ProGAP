@@ -6,7 +6,7 @@ from core import console
 from core.args.utils import ArgInfo
 from core.methods.progap.base import ProGAP
 from core.nn.nap import NAP
-from core.privacy.mechanisms.composed import ComposedGaussianMechanism
+from core.privacy.mechanisms.composed import ComposedNoisyMechanism
 
 
 class EdgeLevelProGAP (ProGAP):
@@ -38,7 +38,7 @@ class EdgeLevelProGAP (ProGAP):
             if np.isinf(self.epsilon):
                 self.noise_scale = 0.0
             else:
-                composed_mechanism = ComposedGaussianMechanism(
+                composed_mechanism = ComposedNoisyMechanism(
                     noise_scale=1.0,
                     mechanism_list=[self.nap.gm],
                     coeff_list=[self.num_stages - 1],
