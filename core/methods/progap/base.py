@@ -74,7 +74,6 @@ class ProGAP (NodeClassification):
         for i in range(n):
             if i > 0:
                 x, _ = self.trainer.predict(dataloader=self.data_loader('predict'))
-                x = self.to_device(x)
                 x = self.nap(x, self.data.adj_t)
                 self.data[f'x{i}'] = x
             
