@@ -1,7 +1,7 @@
 # ProGAP: Progressive Graph Neural Networks with Differential Privacy Guarantees
 
 This repository is the official implementation of the paper:  
-[**ProGAP: Progressive Graph Neural Networks with Differential Privacy Guarantees**]()   
+[**ProGAP: Progressive Graph Neural Networks with Differential Privacy Guarantees**](https://arxiv.org/abs/2304.08928)   
 
 
 
