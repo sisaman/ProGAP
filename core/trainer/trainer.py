@@ -8,7 +8,6 @@ from torch.types import Number
 from torchmetrics import MeanMetric
 
 from core.args.utils import ArgInfo
-from core.loggers.dummy import DummyLogger
 from core.loggers.logger import Logger
 from core.modules.base import Metrics, TrainableModule
 from core.trainer.progress import TrainerProgress
@@ -29,7 +28,7 @@ class Trainer:
         self.monitor = monitor
         self.monitor_mode = monitor_mode
         self.verbose = verbose
-        self.logger = logger or DummyLogger()
+        self.logger = logger or Logger()
 
         # setup device
         if device == 'auto':
