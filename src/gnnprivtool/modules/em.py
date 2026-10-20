@@ -1,0 +1,72 @@
+from collections.abc import Callable
+
+import torch
+import torch.nn.functional as F
+from torch import Tensor
+from torch.nn import BatchNorm1d, Dropout
+from torch_geometric.data import Data
+
+from gnnprivtool.modules.mlp import MLPNodeClassifier
+from gnnprivtool.nn.mlp import MLP
+
+
+class EncoderModule(MLPNodeClassifier):
+    def __init__(self, *,
+                 num_classes: int,
+                 hidden_dim: int = 16,  
+                 encoder_layers: int = 2, 
+                 head_layers: int = 1, 
+                 normalize: bool = True,
+                 dropout: float = 0.0, 
+                 activation_fn: Callable[[Tensor], Tensor] = torch.relu_, 
+                 batch_norm: bool = False,
+                 **kwargs,
+                 ):
+
+        super().__init__(
+            num_classes=num_classes,
+            hidden_dim=hidden_dim,
+            num_layers=head_layers,
+            dropout=dropout,
+            activation_fn=activation_fn,
+            batch_norm=batch_norm,
+            **kwargs,
+        )
+
+        self.encoder_mlp = MLP(
+            hidden_dim=hidden_dim,
+            output_dim=hidden_dim,
+            num_layers=encoder_layers,
+            activation_fn=activation_fn,
+            dropout=dropout,
+            batch_norm=batch_norm,
+            plain_last=True,
+        )
+
+        self.dropout_fn = Dropout(p=dropout, inplace=True)
+        self.activation_fn = activation_fn
+        self.normalize = normalize
+        self.bn = BatchNorm1d(hidden_dim) if batch_norm else False
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.encoder_mlp(x)
+        if self.normalize:
+            x = F.normalize(x, p=2, dim=-1)
+        x = self.bn(x) if self.bn else x
+        x = self.dropout_fn(x)
+        x = self.activation_fn(x)
+        x = super().forward(x)
+        return x
+
+    def predict(self, data: Data) -> Tensor:
+        x = data.x[data.batch_nodes]
+        x = self.encoder_mlp(x)
+        if self.normalize:
+            x = F.normalize(x, p=2, dim=-1)
+        return x
+        
+    def reset_parameters(self):
+        super().reset_parameters()
+        self.encoder_mlp.reset_parameters()
+        if self.bn:
+            self.bn.reset_parameters()

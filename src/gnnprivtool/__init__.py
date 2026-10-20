@@ -1,0 +1,62 @@
+import logging
+import warnings
+
+import rich
+from opacus.validators.utils import register_module_fixer
+from rich.logging import RichHandler
+from rich.traceback import install
+from torch.nn import BatchNorm1d, GroupNorm
+
+from gnnprivtool.console.console import Console
+
+globals = {
+    'debug': False,
+}
+
+
+@register_module_fixer([BatchNorm1d])
+def fix(module: BatchNorm1d) -> GroupNorm:
+    return GroupNorm(1, module.num_features, affine=module.affine)
+
+
+# define main and error consoles
+console = Console(tab_size=4)
+error_console = Console(stderr=True, tab_size=4)
+
+# setup console for tracebacks
+install(console=error_console, width=error_console.width)
+
+# set global console
+rich._console = console
+rich.reconfigure = lambda *args, **kwargs: None
+
+
+def setup_console_logging():
+    # create logger
+    log_handler = RichHandler(
+        console=console, 
+        omit_repeated_times=True,
+        log_time_format="[%X]"
+    )
+    logger = logging.getLogger('gap')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(log_handler)
+
+    for name in logging.root.manager.loggerDict:
+    # for name in ['logging.root.manager.loggerDict']:
+        logger = logging.getLogger(name)
+        
+        if logger.handlers:
+            logger.handlers.clear()
+            logger.addHandler(log_handler)
+
+        if logger.level < logging.WARNING:
+            logger.setLevel(logging.WARNING)
+
+    # setup warnings
+    logging.getLogger("py.warnings").addHandler(log_handler)
+    logging.getLogger("py.warnings").propagate = False
+    logging.captureWarnings(True)
+    warnings.filterwarnings("ignore", module="torch_geometric.utils.sparse", lineno=176)
+    warnings.filterwarnings("ignore", module="scipy.optimize._optimize", lineno=2769)
+    warnings.filterwarnings("ignore", module="torch.nn.modules.module", lineno=1344)

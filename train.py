@@ -1,4 +1,4 @@
-from core import console, setup_console_logging
+from gnnprivtool import console, setup_console_logging
 
 with console.status('importing modules'):
     from argparse import ArgumentParser
@@ -11,14 +11,19 @@ with console.status('importing modules'):
     from rich.table import Table
     from torch_geometric import seed_everything
 
-    from core import globals
-    from core.args.formatter import ArgumentDefaultsRichHelpFormatter
-    from core.args.utils import ArgInfo, create_arguments, print_args, strip_kwargs
-    from core.datasets.loader import DatasetLoader
-    from core.loggers.logger import Logger
-    from core.methods.base import NodeClassification
-    from core.methods.registry import supported_methods
-    from core.utils import confidence_interval
+    from gnnprivtool import globals
+    from gnnprivtool.args.formatter import ArgumentDefaultsRichHelpFormatter
+    from gnnprivtool.args.utils import (
+        ArgInfo,
+        create_arguments,
+        print_args,
+        strip_kwargs,
+    )
+    from gnnprivtool.datasets.loader import DatasetLoader
+    from gnnprivtool.loggers.logger import Logger
+    from gnnprivtool.methods.base import NodeClassification
+    from gnnprivtool.methods.registry import supported_methods
+    from gnnprivtool.utils import confidence_interval
 
 
 def run(seed:        Annotated[int,  ArgInfo(help='initial random seed')] = 12345,

@@ -4,9 +4,9 @@ from itertools import product
 import yaml
 from rich.progress import Progress
 
-from core import console
-from core.jobutils.registry import WandBJobRegistry
-from core.jobutils.scheduler import JobScheduler, cluster_resolver
+from gnnprivtool import console
+from gnnprivtool.jobutils.registry import WandBJobRegistry
+from gnnprivtool.jobutils.scheduler import JobScheduler, cluster_resolver
 
 
 def create_train_commands(registry: WandBJobRegistry):
