@@ -8,19 +8,14 @@ This repository is the official implementation of the paper:
 ## Requirements
 
 This code is implemented in Python 3.10 using PyTorch-Geometric 2.3.0 and PyTorch 2.0.
-Refer to [requiresments.txt](./requirements.txt) to see the full list of dependencies.
+Dependencies are pinned in [pyproject.toml](./pyproject.toml). Install them with
+[`uv`](https://docs.astral.sh/uv/) by running `uv sync`.
 
 ## Notes
 
 1. We use [Weights & Biases](https://docs.wandb.ai/) (WandB) to track the training progress and log experiment results. To replicate the results of the paper as described in the following, you need to have a WandB account. Otherwise, if you just want to train and evaluate the model, a WandB account is not required.
 
 2. We use [Dask](https://jobqueue.dask.org/) to parallelize running multiple experiments on high-performance computing clusters (e.g., SGE, SLURM, etc). If you don't have access to a cluster, you can also simply run the experiments sequentially on your machine (see [usage section](#usage) below).
-
-3. The code requires `autodp` version 0.2.1b or later. You can install the latest version directly from the [GitHub repository](https://github.com/yuxiangw/autodp) using: 
-    ```
-    pip install git+https://github.com/yuxiangw/autodp
-    ```
-
 
 ## Usage
 
