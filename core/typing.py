@@ -1,6 +1,6 @@
 from typing import Literal, TypeVar
-from torch.types import Number
 
+from torch.types import Number
 
 RT = TypeVar('RT')
 Phase = Literal['train', 'val', 'test', 'predict']

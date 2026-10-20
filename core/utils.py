@@ -1,17 +1,18 @@
 import math
-from typing import Callable, Optional
+from collections.abc import Callable
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from rich.table import Table
-from rich.highlighter import ReprHighlighter
 from rich import box
+from rich.highlighter import ReprHighlighter
+from rich.table import Table
 from tabulate import tabulate
 
 
 def bootstrap(data: ArrayLike, 
               func: Callable[[ArrayLike], NDArray]=np.mean, 
               n_boot: int=10000, 
-              seed: Optional[int]=None
+              seed: int | None=None
               ) -> NDArray:
     n = len(data)
     data = np.asarray(data)
@@ -31,7 +32,7 @@ def confidence_interval(data: ArrayLike,
                         func: Callable[[ArrayLike], NDArray]=np.mean, 
                         size: int=1000, 
                         ci: int=95, 
-                        seed: Optional[int]=None
+                        seed: int | None=None
                         ) -> float:
     bs_replicates = bootstrap(data, func=func, n_boot=size, seed=seed)
     p = 50 - ci / 2, 50 + ci / 2
@@ -39,7 +40,7 @@ def confidence_interval(data: ArrayLike,
     return (bounds[1] - bounds[0]) / 2
 
 
-def dict2table(input_dict: dict, num_cols: int = 4, title: Optional[str] = None) -> Table:
+def dict2table(input_dict: dict, num_cols: int = 4, title: str | None = None) -> Table:
     num_items = len(input_dict)
     num_rows = math.ceil(num_items / num_cols)
     col = 0

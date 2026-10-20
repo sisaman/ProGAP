@@ -1,21 +1,23 @@
-import os
 import logging
+import os
+
 from rich.console import Console as RichConsole
-from rich.logging import RichHandler
-from typing import Optional, Union
 from rich.console import JustifyMethod, NewLine
+from rich.logging import RichHandler
 from rich.scope import render_scope
 from rich.segment import Segment
-from rich.styled import Styled
 from rich.style import Style
+from rich.styled import Styled
+
 from core.console.status import LogStatus
+
 
 class Console(RichConsole):
     CRITICAL = logging.CRITICAL
     FATAL = logging.FATAL
     ERROR = logging.ERROR
     WARNING = logging.WARNING
-    WARN = logging.WARN
+    WARN = logging.WARNING
     INFO = logging.INFO
     DEBUG = logging.DEBUG
     NOTSET = logging.NOTSET
@@ -33,11 +35,11 @@ class Console(RichConsole):
         level: int = logging.INFO,
         sep: str = " ",
         end: str = "\n",
-        style: Union[str, Style] = None,
-        justify: Optional[JustifyMethod] = None,
-        emoji: Optional[bool] = None,
-        markup: Optional[bool] = None,
-        highlight: Optional[bool] = None,
+        style: str | Style = None,
+        justify: JustifyMethod | None = None,
+        emoji: bool | None = None,
+        markup: bool | None = None,
+        highlight: bool | None = None,
         log_locals: bool = False,
         _stack_offset: int = 2,
     ) -> None:

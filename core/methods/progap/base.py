@@ -1,13 +1,15 @@
+from typing import Annotated
+
 import torch
-from typing import Annotated, Optional
 from class_resolver.contrib.torch import activation_resolver
+
 from core import console
 from core.args.utils import ArgInfo
-from core.nn.jk import JumpingKnowledge as JK
 from core.methods.base import NodeClassification
-from core.nn.nap import NAP
 from core.modules.base import Metrics
 from core.modules.prog import ProgressiveModule
+from core.nn.jk import JumpingKnowledge as JK
+from core.nn.nap import NAP
 
 
 class ProGAP (NodeClassification):
@@ -67,7 +69,7 @@ class ProGAP (NodeClassification):
             weight_decay=self.weight_decay,
         )
     
-    def pipeline(self, fit: bool=False) -> Optional[Metrics]:
+    def pipeline(self, fit: bool=False) -> Metrics | None:
         n = self.num_stages
         self.data.x0 = self.data.x
         

@@ -1,8 +1,9 @@
-from typing import Callable
+from collections.abc import Callable
+
 import torch
 from torch import Tensor
-from torch.nn import Dropout, Module, BatchNorm1d
-from torch_geometric.nn import GraphSAGE, GCN, GAT
+from torch.nn import BatchNorm1d, Dropout, Module
+from torch_geometric.nn import GAT, GCN, GraphSAGE
 
 
 class GNN(Module):
@@ -18,23 +19,23 @@ class GNN(Module):
                  dropout: float = 0.0, 
                  activation_fn: Callable[[Tensor], Tensor] = torch.relu_, 
                  batch_norm: bool = False,
-                 jk: str = None,
+                 jk: str | None = None,
                  plain_last: bool = True,
                  **conv_kwargs
                  ):
         
         super().__init__()
 
-        model_kwargs = dict(
-            in_channels=-1,
-            hidden_channels=hidden_dim,
-            out_channels=output_dim,
-            num_layers=num_layers,
-            act=activation_fn,
-            dropout=dropout,
-            norm='batchnorm' if batch_norm else None,
-            jk=jk,
-        )
+        model_kwargs = {
+            'in_channels': -1,
+            'hidden_channels': hidden_dim,
+            'out_channels': output_dim,
+            'num_layers': num_layers,
+            'act': activation_fn,
+            'dropout': dropout,
+            'norm': 'batchnorm' if batch_norm else None,
+            'jk': jk,
+        }
 
         if conv == 'sage':
             self.model = GraphSAGE(

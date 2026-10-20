@@ -1,10 +1,12 @@
-from typing import Callable, Optional
+from collections.abc import Callable
+
 import torch
-from torch import Tensor
 import torch.nn.functional as F
-from core.nn.mlp import MLP
+from torch import Tensor
 from torch_geometric.data import Data
-from core.modules.base import TrainableModule, Phase, Metrics
+
+from core.modules.base import Metrics, Phase, TrainableModule
+from core.nn.mlp import MLP
 
 
 class MLPNodeClassifier(TrainableModule):
@@ -33,7 +35,7 @@ class MLPNodeClassifier(TrainableModule):
     def forward(self, x: Tensor) -> Tensor:
         return self.model(x)
 
-    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
+    def step(self, data: Data, phase: Phase) -> tuple[Tensor | None, Metrics]:
         x, y = data.x[data.batch_nodes], data.y[data.batch_nodes]
         preds = F.log_softmax(self(x), dim=-1)
         acc = preds.detach().argmax(dim=1).eq(y).float().mean() * 100

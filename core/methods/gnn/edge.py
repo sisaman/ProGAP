@@ -1,6 +1,8 @@
 from typing import Annotated
+
 from torch_geometric.data import Data
 from torch_sparse import SparseTensor
+
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.gnn.base import StandardGNN

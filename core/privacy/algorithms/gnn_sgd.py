@@ -1,8 +1,9 @@
+import dp_accounting
 import numpy as np
 import scipy
-import dp_accounting
 from opacus.optimizers import DPOptimizer
 from torch.optim import Optimizer
+
 from core.data.loader.node import NodeDataLoader
 from core.privacy.algorithms.noisy_sgd import NoisySGD
 

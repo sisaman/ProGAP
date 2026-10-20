@@ -3,25 +3,25 @@
 from __future__ import annotations
 
 import argparse
-import sys
-from typing import Callable, ClassVar, Iterable, Iterator
-# from typing import TYPE_CHECKING
+from collections.abc import Callable, Iterable, Iterator
+from typing import ClassVar
 
+# from typing import TYPE_CHECKING
 # rich is only used to display help. It is imported inside the functions in order
 # not to add delays to command line tools that use this formatter.
 # if TYPE_CHECKING:
 from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
 from rich.containers import Lines
+from rich.highlighter import ReprHighlighter
 from rich.style import StyleType
 from rich.text import Span, Text
-from rich.highlighter import ReprHighlighter
 
 __all__ = [
-    "RichHelpFormatter",
-    "RawDescriptionRichHelpFormatter",
-    "RawTextRichHelpFormatter",
     "ArgumentDefaultsRichHelpFormatter",
     "MetavarTypeRichHelpFormatter",
+    "RawDescriptionRichHelpFormatter",
+    "RawTextRichHelpFormatter",
+    "RichHelpFormatter",
 ]
 _Actions = Iterable[argparse.Action]
 _Groups = Iterable[argparse._ArgumentGroup]
@@ -165,17 +165,14 @@ class RichHelpFormatter(argparse.HelpFormatter):
                 options.append(action) if action.option_strings else positionals.append(action)
         pos = start
         for action in options:  # start with the options
-            if sys.version_info >= (3, 9):  # pragma: >=3.9 cover
-                usage = action.format_usage()
-                if isinstance(action, argparse.BooleanOptionalAction):
-                    for option_string in action.option_strings:
-                        start = text.index(option_string, pos)
-                        end = start + len(option_string)
-                        yield Span(start, end, "argparse.args")
-                        pos = end + 1
-                    continue
-            else:  # pragma: <3.9 cover
-                usage = action.option_strings[0]
+            usage = action.format_usage()
+            if isinstance(action, argparse.BooleanOptionalAction):
+                for option_string in action.option_strings:
+                    start = text.index(option_string, pos)
+                    end = start + len(option_string)
+                    yield Span(start, end, "argparse.args")
+                    pos = end + 1
+                continue
             start = text.index(usage, pos)
             end = start + len(usage)
             yield Span(start, end, "argparse.args")

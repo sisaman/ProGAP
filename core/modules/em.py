@@ -1,11 +1,13 @@
-from typing import Callable
+from collections.abc import Callable
+
 import torch
-from torch import Tensor
 import torch.nn.functional as F
+from torch import Tensor
 from torch.nn import BatchNorm1d, Dropout
-from core.nn.mlp import MLP
 from torch_geometric.data import Data
+
 from core.modules.mlp import MLPNodeClassifier
+from core.nn.mlp import MLP
 
 
 class EncoderModule(MLPNodeClassifier):

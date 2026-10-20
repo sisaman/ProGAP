@@ -1,5 +1,7 @@
 from typing import Annotated
+
 from class_resolver.contrib.torch import activation_resolver
+
 from core.args.utils import ArgInfo
 from core.methods.base import NodeClassification
 from core.modules.base import TrainableModule

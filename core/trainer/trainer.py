@@ -1,14 +1,17 @@
+from collections.abc import Iterable
 from copy import deepcopy
-from typing import Annotated, Iterable, Literal, Optional
+from typing import Annotated, Literal
+
 import torch
 from torch.optim import Optimizer
 from torch.types import Number
 from torchmetrics import MeanMetric
+
 from core.args.utils import ArgInfo
 from core.loggers.dummy import DummyLogger
 from core.loggers.logger import Logger
-from core.trainer.progress import TrainerProgress
 from core.modules.base import Metrics, TrainableModule
+from core.trainer.progress import TrainerProgress
 from core.typing import Phase
 
 
@@ -72,8 +75,8 @@ class Trainer:
     def fit(self, 
             model: TrainableModule, 
             train_dataloader: Iterable, 
-            val_dataloader: Optional[Iterable]=None, 
-            test_dataloader: Optional[Iterable]=None, 
+            val_dataloader: Iterable | None=None, 
+            test_dataloader: Iterable | None=None, 
             ) -> Metrics:
         
         self.model = model.to(self.device)
@@ -89,7 +92,7 @@ class Trainer:
         
         with self.progress:
             for epoch in range(1, self.epochs + 1):
-                metrics = {f'epoch': epoch}
+                metrics = {'epoch': epoch}
 
                 # train loop
                 train_metrics = self.loop(train_dataloader, phase='train')

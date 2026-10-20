@@ -1,15 +1,17 @@
 from typing import Annotated
+
 import torch
-from torch import Tensor
 import torch.nn.functional as F
 from class_resolver.contrib.torch import activation_resolver
+from torch import Tensor
+
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.base import NodeClassification
-from core.nn.multi_mlp import MultiMLP
 from core.modules.base import Metrics
 from core.modules.cm import ClassificationModule
 from core.modules.em import EncoderModule
+from core.nn.multi_mlp import MultiMLP
 
 
 class GAP (NodeClassification):

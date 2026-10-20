@@ -1,11 +1,14 @@
-from typing import Annotated, Callable, Literal, Union, get_args, get_origin
-from core import console
 import inspect
+import types
 from argparse import SUPPRESS, ArgumentParser, ArgumentTypeError, Namespace
+from collections.abc import Callable
+from contextlib import suppress
+from typing import Annotated, Literal, Union, get_args, get_origin
+
+from core import console
 from core.utils import dict2table
 
-
-ArgType = Union[Namespace, dict[str, object]]
+ArgType = Namespace | dict[str, object]
 ArgInfo = dict[str, object]
 
 
@@ -23,7 +26,7 @@ class ArgWithLiteral:
             else:
                 raise ArgumentTypeError(f'{arg} is not a valid literal')
 
-def boolean(v: Union[str, bool]) -> bool:
+def boolean(v: str | bool) -> bool:
     if isinstance(v, bool):
         return v
     if v.lower() in ('yes', 'true', 't', 'y', '1', 'on'):
@@ -47,7 +50,7 @@ def strip_kwargs(callable: Callable, kwargs: dict, prefix: str='') -> dict[str, 
             out_kwargs[arg] = value
 
     # check if the function has kwargs
-    for _, param in parameters.items():
+    for param in parameters.values():
         annotation = param.annotation
         if get_origin(annotation) is Annotated:
             metadata = get_args(annotation)[1]
@@ -61,7 +64,9 @@ def strip_kwargs(callable: Callable, kwargs: dict, prefix: str='') -> dict[str, 
     return out_kwargs
 
 
-def create_arguments(callable: Callable, parser: ArgumentParser, exclude: list = [], prefix: str = ''):
+def create_arguments(callable: Callable, parser: ArgumentParser, exclude: list | None = None, prefix: str = ''):
+    if exclude is None:
+        exclude = []
     arguments_added = [action.dest for action in parser._actions]
     parameters = inspect.signature(callable).parameters
 
@@ -99,6 +104,12 @@ def create_arguments(callable: Callable, parser: ArgumentParser, exclude: list =
                     )
             else:
                 # if there are no base callables, add the parameter to the parser
+                # unwrap optional types (e.g., str | None -> str)
+                if get_origin(param_type) in (Union, types.UnionType):
+                    sub_types = tuple(t for t in get_args(param_type) if t is not type(None))
+                    if len(sub_types) == 1:
+                        param_type = sub_types[0]
+
                 metadata['type'] = param_type
                 metadata['dest'] = arg_name
 
@@ -117,7 +128,7 @@ def create_arguments(callable: Callable, parser: ArgumentParser, exclude: list =
                     metadata['type'] = boolean
                     metadata['nargs'] = '?'
                     metadata['const'] = True
-                elif get_origin(param_type) is Union:
+                elif get_origin(param_type) in (Union, types.UnionType):
                     # process union parameters
                     sub_types = get_args(param_type)
                     if len(sub_types) == 2 and get_origin(sub_types[0]) is Literal:
@@ -127,9 +138,8 @@ def create_arguments(callable: Callable, parser: ArgumentParser, exclude: list =
                 # if metadata contains "choices", the parser uses that as meta variable
                 # otherwise, if "metavar" is not provided, set the meta variable to  <parameter type>
                 if 'choices' not in metadata:
-                    try:
+                    with suppress(AttributeError):
                         metadata['metavar'] = metadata.get('metavar', f'<{param_type.__name__}>')
-                    except: pass
 
                 # create options based on parameter name
                 options = {f'--{arg_name}', f'--{arg_name.replace("_", "-")}'}
@@ -143,7 +153,7 @@ def create_arguments(callable: Callable, parser: ArgumentParser, exclude: list =
                     options.add(option)
 
                 # sort option names based on their length
-                options = sorted(sorted(list(options)), key=len)
+                options = sorted(sorted(options), key=len)
 
                 # add the parameter to the parser
                 parser.add_argument(*options, **metadata)

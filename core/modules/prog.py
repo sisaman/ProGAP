@@ -1,12 +1,14 @@
-from typing import Callable, Iterator, Optional
+from collections.abc import Callable, Iterator
+
 import torch
-from torch import Tensor
 import torch.nn.functional as F
+from torch import Tensor
 from torch.nn import ModuleList, Parameter
-from core.nn.mlp import MLP
-from core.nn.jk import JumpingKnowledge
 from torch_geometric.data import Data
+
 from core.modules.base import Metrics, Phase, TrainableModule
+from core.nn.jk import JumpingKnowledge
+from core.nn.mlp import MLP
 
 
 class ProgressiveModule(TrainableModule):
@@ -109,7 +111,7 @@ class ProgressiveModule(TrainableModule):
         y = self.head[self.current_stage](x)
         return h, y
 
-    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
+    def step(self, data: Data, phase: Phase) -> tuple[Tensor | None, Metrics]:
         xs = [data[f'x{i}'][data.batch_nodes] for i in range(self.current_stage + 1)]
         y = data.y[data.batch_nodes]
         

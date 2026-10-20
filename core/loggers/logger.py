@@ -1,6 +1,7 @@
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from torch.nn import Module
+
 from core.args.utils import ArgInfo
 from core.loggers.base import LoggerBase
 from core.loggers.dummy import DummyLogger
@@ -8,18 +9,20 @@ from core.loggers.wandb import WandbLogger
 
 
 class Logger(LoggerBase):
-    supported_loggers = {
+    supported_loggers: ClassVar[dict[str, type[LoggerBase]]] = {
         'wandb': WandbLogger
     }
 
     def __init__(self,
-        logger:     Annotated[str,  ArgInfo(help='select logger type', choices=supported_loggers)] = None,
+        logger:     Annotated[str | None,  ArgInfo(help='select logger type', choices=supported_loggers)] = None,
         project:    Annotated[str,  ArgInfo(help="project name for logger")] = 'ProGAP',
         output_dir: Annotated[str,  ArgInfo(help="directory to store the results")] = './output',
-        config:     dict = {},
+        config:     dict | None = None,
         prefix:     str = '',
         ) -> None:
         
+        if config is None:
+            config = {}
         self.logger_name = logger
         self.project = project
         self.output_dir = output_dir

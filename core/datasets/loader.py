@@ -1,18 +1,19 @@
 import os
 from functools import partial
-from typing import Annotated
+from typing import Annotated, ClassVar
+
 import torch
-from core import console
 from torch_geometric.data import Data
 from torch_geometric.datasets import Reddit
-from torch_geometric.transforms import Compose, ToSparseTensor, RandomNodeSplit
+from torch_geometric.transforms import Compose, RandomNodeSplit, ToSparseTensor
+
+from core import console
 from core.args.utils import ArgInfo
 from core.data.transforms.filter_class import FilterClassByCount
-from core.data.transforms.remove_self_loops import RemoveSelfLoops
 from core.data.transforms.remove_isolated_nodes import RemoveIsolatedNodes
+from core.data.transforms.remove_self_loops import RemoveSelfLoops
 from core.datasets.amazon import Amazon
-from core.datasets.facebook import Facebook
-from core.datasets.facebook import FB100
+from core.datasets.facebook import FB100, Facebook
 from core.utils import dict2table
 
 
@@ -23,7 +24,7 @@ def load_wenet(root: str, transform=None) -> Data:
 
 
 class DatasetLoader:
-    supported_datasets = {
+    supported_datasets: ClassVar[dict[str, partial]] = {
         'reddit': partial(Reddit, 
             pre_transform=Compose([
                 RandomNodeSplit(num_val=0.1, num_test=0.15), 

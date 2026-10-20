@@ -1,18 +1,20 @@
 from abc import ABC, abstractmethod
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
+
 from torch import Tensor
 from torch_geometric.data import Data
+
+from core import console, globals
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
-from core import globals, console
-from core.modules.base import TrainableModule, Metrics, Phase
+from core.modules.base import Metrics, Phase, TrainableModule
 from core.trainer.trainer import Trainer
 
 
 class NodeClassification(ABC):
     def __init__(self, 
                  num_classes:      int,
-                 batch_size:       Annotated[Union[Literal['full'], int],   
+                 batch_size:       Annotated[Literal['full'] | int,   
                                                     ArgInfo(help='batch size, or "full" for full-batch training')] = 'full',
                  full_batch_eval:  Annotated[bool,  ArgInfo(help='if true, then model uses full-batch evaluation')] = True,
                  **trainer_args:   Annotated[dict,  ArgInfo(help='extra options passed to the trainer class', bases=[Trainer])]
@@ -102,6 +104,6 @@ class NodeClassification(ABC):
 
         return dataloader
     
-    def to_device(self, data: Union[Data, Tensor]):
+    def to_device(self, data: Data | Tensor):
         """Move the data to the device."""
         return self.trainer.to_device(data)

@@ -1,8 +1,9 @@
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
+
 import numpy as np
-import torch.nn.functional as F
 from opacus.validators import ModuleValidator
 from torch_geometric.data import Data
+
 from core import console
 from core.args.utils import ArgInfo
 from core.data.loader.node import NodeDataLoader
@@ -21,7 +22,7 @@ class NodeLevelGNN (StandardGNN):
     def __init__(self,
                  num_classes,
                  epsilon:       Annotated[float, ArgInfo(help='DP epsilon parameter', option='-e')],
-                 delta:         Annotated[Union[Literal['auto'], float], 
+                 delta:         Annotated[Literal['auto'] | float, 
                                                  ArgInfo(help='DP delta parameter (if "auto", sets a proper value based on data size)', option='-d')] = 'auto',
                  max_degree:    Annotated[int,   ArgInfo(help='max degree to sample per each node')] = 100,
                  max_grad_norm: Annotated[float, ArgInfo(help='maximum norm of the per-sample gradients')] = 1.0,
@@ -85,7 +86,7 @@ class NodeLevelGNN (StandardGNN):
         with console.status('calibrating noise to privacy budget'):
             if self.delta == 'auto':
                 delta = 0.0 if np.isinf(self.epsilon) else 1. / (10 ** len(str(self.num_train_nodes)))
-                console.info('delta = %.0e' % delta)
+                console.info(f'delta = {delta:.0e}')
             
             self.noise_scale = composed_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')

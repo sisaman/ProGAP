@@ -1,10 +1,12 @@
-from itertools import product
-import yaml
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from itertools import product
+
+import yaml
+from rich.progress import Progress
+
 from core import console
 from core.jobutils.registry import WandBJobRegistry
 from core.jobutils.scheduler import JobScheduler, cluster_resolver
-from rich.progress import Progress
 
 
 def create_train_commands(registry: WandBJobRegistry):

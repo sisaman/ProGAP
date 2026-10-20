@@ -1,11 +1,13 @@
-from typing import Callable, Iterator, Optional
+from collections.abc import Callable, Iterator
+
 import torch
-from torch import Tensor
 import torch.nn.functional as F
+from torch import Tensor
 from torch.nn import ModuleList, Parameter
-from core.nn.mlp import MLP
 from torch_geometric.data import Data
+
 from core.modules.base import Metrics, Phase, TrainableModule
+from core.nn.mlp import MLP
 
 
 class LPGNetModule(TrainableModule):
@@ -51,7 +53,7 @@ class LPGNetModule(TrainableModule):
         x = self.mlps[self.current_stage](x)
         return x
 
-    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
+    def step(self, data: Data, phase: Phase) -> tuple[Tensor | None, Metrics]:
         x = data.x[data.batch_nodes]
         y = data.y[data.batch_nodes]
         

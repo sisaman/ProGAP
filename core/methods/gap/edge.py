@@ -1,9 +1,10 @@
+from typing import Annotated, Literal
+
 import numpy as np
 import torch
 from torch import Tensor
-from typing import Annotated, Literal, Union
-
 from torch_geometric.data import Data
+
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.gap.base import GAP
@@ -16,7 +17,7 @@ class EdgeLevelGAP (GAP):
     def __init__(self,
                  num_classes,
                  epsilon:       Annotated[float, ArgInfo(help='DP epsilon parameter', option='-e')],
-                 delta:         Annotated[Union[Literal['auto'], float], 
+                 delta:         Annotated[Literal['auto'] | float, 
                                                  ArgInfo(help='DP delta parameter (if "auto", sets a proper value based on data size)', option='-d')] = 'auto',
                  **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[GAP])]
                  ):
@@ -32,7 +33,7 @@ class EdgeLevelGAP (GAP):
         with console.status('calibrating noise to privacy budget'):
             if self.delta == 'auto':
                 delta = 0.0 if np.isinf(self.epsilon) else 1. / (10 ** len(str(self.num_edges)))
-                console.info('delta = %.0e' % delta)
+                console.info(f'delta = {delta:.0e}')
             
             self.noise_scale = self.pma_mechanism.calibrate(eps=self.epsilon, delta=delta)
             console.info(f'noise scale: {self.noise_scale:.4f}\n')

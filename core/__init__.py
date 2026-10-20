@@ -1,12 +1,13 @@
-import rich
 import logging
 import warnings
-from rich.traceback import install
-from rich.logging import RichHandler
-from torch.nn import BatchNorm1d, GroupNorm
-from opacus.validators.utils import register_module_fixer
-from core.console.console import Console
 
+import rich
+from opacus.validators.utils import register_module_fixer
+from rich.logging import RichHandler
+from rich.traceback import install
+from torch.nn import BatchNorm1d, GroupNorm
+
+from core.console.console import Console
 
 globals = {
     'debug': False,

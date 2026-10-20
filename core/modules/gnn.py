@@ -1,11 +1,13 @@
-from typing import Callable, Optional
+from collections.abc import Callable
+
 import torch
-from torch import Tensor
 import torch.nn.functional as F
-from core.nn.mlp import MLP
+from torch import Tensor
 from torch_geometric.data import Data
-from core.nn.gnn import GNN
+
 from core.modules.base import Metrics, Phase, TrainableModule
+from core.nn.gnn import GNN
+from core.nn.mlp import MLP
 
 
 class GNNNodeClassifier(TrainableModule):
@@ -16,14 +18,16 @@ class GNNNodeClassifier(TrainableModule):
                  mp_layers: int = 2, 
                  head_layers: int = 0, 
                  conv: str = 'sage',
-                 conv_kwargs: dict = {},
-                 jk: str = None,
+                 conv_kwargs: dict | None = None,
+                 jk: str | None = None,
                  activation_fn: Callable[[Tensor], Tensor] = torch.relu_,
                  dropout: float = 0.0, 
                  batch_norm: bool = False,
                  **kwargs
                  ):
 
+        if conv_kwargs is None:
+            conv_kwargs = {}
         assert mp_layers > 0, 'Must have at least one message passing layer'
 
         super().__init__(**kwargs)
@@ -67,7 +71,7 @@ class GNNNodeClassifier(TrainableModule):
         x = self.head_mlp(x)
         return x
 
-    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]:
+    def step(self, data: Data, phase: Phase) -> tuple[Tensor | None, Metrics]:
         h = self(data.x, data.adj_t)
         h, y = h[data.batch_nodes], data.y[data.batch_nodes]
         preds = F.log_softmax(h, dim=-1)

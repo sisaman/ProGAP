@@ -1,13 +1,15 @@
+from typing import Annotated, Literal
+
 import numpy as np
-from typing import Annotated, Literal, Union
 from opacus.validators import ModuleValidator
 from torch_geometric.data import Data
+
 from core import console
 from core.args.utils import ArgInfo
-from core.methods.mlp.edge import SimpleMLP
-from core.privacy.algorithms.noisy_sgd import NoisySGD
-from core.modules.base import Phase
 from core.data.loader.node import NodeDataLoader
+from core.methods.mlp.edge import SimpleMLP
+from core.modules.base import Phase
+from core.privacy.algorithms.noisy_sgd import NoisySGD
 
 
 class PrivateMLP (SimpleMLP):
@@ -16,7 +18,7 @@ class PrivateMLP (SimpleMLP):
     def __init__(self,
                  num_classes,
                  epsilon:       Annotated[float, ArgInfo(help='DP epsilon parameter', option='-e')],
-                 delta:         Annotated[Union[Literal['auto'], float], 
+                 delta:         Annotated[Literal['auto'] | float, 
                                                  ArgInfo(help='DP delta parameter (if "auto", sets a proper value based on data size)', option='-d')] = 'auto',
                  max_grad_norm: Annotated[float, ArgInfo(help='maximum norm of the per-sample gradients')] = 1.0,
                  batch_size:    Annotated[int,   ArgInfo(help='batch size')] = 256,

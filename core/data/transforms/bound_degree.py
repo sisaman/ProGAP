@@ -1,9 +1,9 @@
 import torch
 import torch.utils.cpp_extension
-from torch_geometric.transforms import BaseTransform
-from torch_geometric.data import Data
-from torch_geometric.utils import to_torch_csr_tensor
 from pyg_lib.sampler import neighbor_sample
+from torch_geometric.data import Data
+from torch_geometric.transforms import BaseTransform
+from torch_geometric.utils import to_torch_csr_tensor
 
 
 class BoundOutDegree(BaseTransform):

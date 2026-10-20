@@ -1,5 +1,6 @@
-from autodp.mechanism_zoo import GaussianMechanism, ExactGaussianMechanism
+from autodp.mechanism_zoo import ExactGaussianMechanism, GaussianMechanism
 from autodp.transformer_zoo import ComposeGaussian, Composition
+
 from core.privacy.mechanisms.noisy import NoisyMechanism
 
 
@@ -7,8 +8,8 @@ class ComposedNoisyMechanism(NoisyMechanism):
     def __init__(self, 
                  noise_scale: float, 
                  mechanism_list: list[NoisyMechanism], 
-                 coeff_list: list[float]=None,
-                 weight_list: list[float]=None,
+                 coeff_list: list[float] | None=None,
+                 weight_list: list[float] | None=None,
                  ):
         super().__init__(noise_scale)
         if coeff_list is None:

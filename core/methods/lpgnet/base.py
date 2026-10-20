@@ -1,12 +1,14 @@
+from typing import Annotated
+
 import torch
-from torch import Tensor
-from typing import Annotated, Optional
 from class_resolver.contrib.torch import activation_resolver
+from torch import Tensor
+
 from core import console
 from core.args.utils import ArgInfo
-from core.modules.lpgnet import LPGNetModule
 from core.methods.base import NodeClassification
 from core.modules.base import Metrics
+from core.modules.lpgnet import LPGNetModule
 
 
 class LPGNet (NodeClassification):
@@ -61,7 +63,7 @@ class LPGNet (NodeClassification):
         x = torch.spmm(adj_t, y)
         return x
     
-    def pipeline(self, fit: bool=False) -> Optional[Metrics]:
+    def pipeline(self, fit: bool=False) -> Metrics | None:
         n = self.num_stages
         
         for i in range(n):

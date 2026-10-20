@@ -1,10 +1,11 @@
-from typing import Literal, Optional, Union
+from collections.abc import Iterator
+from typing import Literal
+
 import torch
 from torch import Tensor
-from collections.abc import Iterator
 from torch_geometric.data import Data
-from torch_geometric.utils import k_hop_subgraph, to_edge_index
 from torch_geometric.transforms import ToSparseTensor
+from torch_geometric.utils import k_hop_subgraph, to_edge_index
 
 
 class NodeDataLoader:
@@ -36,9 +37,9 @@ class NodeDataLoader:
     """
     def __init__(self, 
                  data: Data, 
-                 subset: Optional[Tensor] = None,
-                 batch_size: Union[int, Literal['full']] = 'full', 
-                 hops: Optional[int] = None,
+                 subset: Tensor | None = None,
+                 batch_size: int | Literal['full'] = 'full', 
+                 hops: int | None = None,
                  shuffle: bool = True, 
                  drop_last: bool = False, 
                  poisson_sampling: bool = False):

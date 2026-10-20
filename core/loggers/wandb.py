@@ -1,6 +1,7 @@
 import os
 
 from torch.nn import Module
+
 from core.loggers.base import LoggerBase
 
 try:
@@ -11,7 +12,9 @@ except ImportError:
 
 
 class WandbLogger(LoggerBase):
-    def __init__(self, project: str, output_dir: str, config: dict = {}):
+    def __init__(self, project: str, output_dir: str, config: dict | None = None):
+        if config is None:
+            config = {}
         self.project = project
         self.output_dir = output_dir
         self.config = config

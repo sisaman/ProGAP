@@ -1,7 +1,9 @@
-import torch
+from typing import ClassVar
+
 from torch import Tensor
 from torch.nn import Module, MultiheadAttention
-from torch_geometric.nn import JumpingKnowledge as JK, Linear
+from torch_geometric.nn import JumpingKnowledge as JK
+from torch_geometric.nn import Linear
 
 
 class SelfAttention(MultiheadAttention):
@@ -57,7 +59,7 @@ class WeightedSum(Module):
 
 
 class JumpingKnowledge(Module):
-    supported_modes = ['cat', 'max', 'lstm', 'sum', 'mean', 'attn', 'wsum']
+    supported_modes: ClassVar[list[str]] = ['cat', 'max', 'lstm', 'sum', 'mean', 'attn', 'wsum']
     def __init__(self, mode: str, **kwargs):
         super().__init__()
         self.mode = mode

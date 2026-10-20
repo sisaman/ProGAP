@@ -1,7 +1,8 @@
-import numpy as np
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
+import numpy as np
 from torch_geometric.data import Data
+
 from core import console
 from core.args.utils import ArgInfo
 from core.methods.progap.base import ProGAP
@@ -15,7 +16,7 @@ class EdgeLevelProGAP (ProGAP):
     def __init__(self,
                  num_classes,
                  epsilon:       Annotated[float, ArgInfo(help='DP epsilon parameter', option='-e')],
-                 delta:         Annotated[Union[Literal['auto'], float], 
+                 delta:         Annotated[Literal['auto'] | float, 
                                                  ArgInfo(help='DP delta parameter (if "auto", sets a proper value based on data size)', option='-d')] = 'auto',
                  **kwargs:      Annotated[dict,  ArgInfo(help='extra options passed to base class', bases=[ProGAP])]
                  ):
@@ -31,9 +32,9 @@ class EdgeLevelProGAP (ProGAP):
     def calibrate(self):
         with console.status('calibrating noise to privacy budget'):
             if self.delta == 'auto':
-                console.info('num_edges = %d' % self.num_edges)
+                console.info(f'num_edges = {self.num_edges:d}')
                 delta = 0.0 if np.isinf(self.epsilon) else 1. / (10 ** len(str(self.num_edges)))
-                console.info('delta = %.0e' % delta)
+                console.info(f'delta = {delta:.0e}')
             
             if np.isinf(self.epsilon):
                 self.noise_scale = 0.0

@@ -1,11 +1,11 @@
-from typing import Optional
+from abc import ABC, abstractmethod
+
+from class_resolver.contrib.torch import optimizer_resolver
 from torch import Tensor
 from torch.nn import Module
-from torch.optim.optimizer import Optimizer
 from torch_geometric.data import Data
-from abc import ABC, abstractmethod
+
 from core.typing import Metrics, Phase
-from class_resolver.contrib.torch import optimizer_resolver
 
 
 class TrainableModule(Module, ABC):
@@ -19,7 +19,7 @@ class TrainableModule(Module, ABC):
     def forward(self, *args, **kwargs): pass
 
     @abstractmethod
-    def step(self, data: Data, phase: Phase) -> tuple[Optional[Tensor], Metrics]: pass
+    def step(self, data: Data, phase: Phase) -> tuple[Tensor | None, Metrics]: pass
 
     @abstractmethod
     def predict(self, data: Data) -> Tensor: pass

@@ -1,10 +1,12 @@
 import os
-import wandb
-import pandas as pd
-import numpy as np
 from itertools import product
-from core import console
+
+import numpy as np
+import pandas as pd
+import wandb
 from rich.progress import track
+
+from core import console
 
 
 class WandBJobRegistry:
@@ -52,7 +54,7 @@ class WandBJobRegistry:
 
         # convert all values to tuples
         for key, value in params.items():
-            if not (isinstance(value, list) or isinstance(value, tuple)):
+            if not (isinstance(value, (list, tuple))):
                 params[key] = (value,)
         
         # rule out already existing jobs

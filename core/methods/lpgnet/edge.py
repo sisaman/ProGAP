@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from torch import Tensor
 
 from core import console
