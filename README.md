@@ -25,18 +25,18 @@ To reproduce the paper's results, please follow the below steps:
 1. Set your WandB username in [config/wandb.yaml](config/wandb.yaml) (line 7). This is required to log the results to your WandB account.
 
 2. Execute the following python script:
-    ```
-    python experiments.py --generate
+    ```bash
+    uv run experiments.py --generate
     ```
     This creates the file "jobs/experiments.sh" containing the commands to run all the experiments.
 
 3. If you want to run the experiments on your own machine, run:
-    ```
-    sh jobs/experiments.sh
+    ```bash
+    uv run jobs/experiments.sh
     ``` 
     This trains all the models required for the experiments one by one. Otherwise, if you have access to a [supported HPC cluster](https://jobqueue.dask.org/en/latest/api.html), first configure your cluster setting in [config/dask.yaml](config/dask.yaml) according to Dask-Jobqueue's [documentation](https://jobqueue.dask.org/en/latest/configuration.html). Then, run the following command:
-    ```
-    python experiments.py --run --scheduler <scheduler>
+    ```bash
+    uv run experiments.py --run --scheduler <scheduler>
     ```
     where `<scheduler>` is the name of your scheduler (e.g., `sge`, `slurm`, etc). The above command will submit all the jobs to your cluster and run them in parallel. 
     
@@ -47,8 +47,8 @@ To reproduce the paper's results, please follow the below steps:
 
 Run the following command to see the list of available options for training individual models:  
 
-```
-python train.py --help
+```bash
+uv run train.py --help
 ``` 
 
 <!-- ### Demo
