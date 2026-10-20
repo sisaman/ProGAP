@@ -1,4 +1,5 @@
 import os
+import shutil
 import ssl
 from typing import ClassVar
 
@@ -6,12 +7,31 @@ import pandas as pd
 import torch
 from scipy.io import loadmat
 from sklearn.preprocessing import LabelEncoder
-from torch_geometric.data import Data, InMemoryDataset, download_url
+from torch_geometric.data import Data, InMemoryDataset, download_url, extract_zip
 from torch_geometric.utils import from_scipy_sparse_matrix, subgraph
 
 
+def download_facebook100(url: str, raw_dir: str, names: list[str]):
+    context = ssl._create_default_https_context
+    ssl._create_default_https_context = ssl._create_unverified_context
+    path = download_url(url, raw_dir)
+    ssl._create_default_https_context = context
+    extract_zip(path, raw_dir)
+
+    # the zip nests the .mat files under facebook100/ and some names contain spaces (e.g. "Johns Hopkins55.mat")
+    extracted_dir = os.path.join(raw_dir, 'facebook100')
+    for filename in os.listdir(extracted_dir):
+        name, ext = os.path.splitext(filename.replace(' ', ''))
+        if ext == '.mat' and name in names:
+            os.replace(os.path.join(extracted_dir, filename), os.path.join(raw_dir, name + ext))
+
+    shutil.rmtree(extracted_dir)
+    shutil.rmtree(os.path.join(raw_dir, '__MACOSX'), ignore_errors=True)
+    os.remove(path)
+
+
 class Facebook(InMemoryDataset):
-    url = 'https://github.com/sisaman/pyg-datasets/raw/main/datasets/facebook100/'
+    url = 'https://archive.org/download/oxford-2005-facebook-matrix/facebook100.zip'
     targets: ClassVar[list[str]] = ['status', 'gender', 'major', 'minor', 'housing', 'year']
     available_datasets: ClassVar[list[str]] = [
         "Villanova62", "UCLA26", "Tennessee95", "NYU9", "Carnegie49", "GWU54", "USF51", "Vanderbilt48", 
@@ -51,10 +71,7 @@ class Facebook(InMemoryDataset):
         return f'data-{self.name}-{self.target}.pt'
 
     def download(self):
-        context = ssl._create_default_https_context
-        ssl._create_default_https_context = ssl._create_unverified_context
-        download_url(f'{self.url}/{self.raw_file_names}', self.raw_dir)
-        ssl._create_default_https_context = context
+        download_facebook100(self.url, self.raw_dir, names=[self.name])
 
     def process(self):
         mat = loadmat(os.path.join(self.raw_dir, self.raw_file_names))
@@ -85,7 +102,7 @@ class Facebook(InMemoryDataset):
 
 
 class FB100(InMemoryDataset):
-    url = 'https://github.com/sisaman/pyg-datasets/raw/main/datasets/facebook100/'
+    url = 'https://archive.org/download/oxford-2005-facebook-matrix/facebook100.zip'
     targets: ClassVar[list[str]] = ['status', 'gender', 'major', 'minor', 'housing', 'year']
     available_datasets: ClassVar[list[str]] = [
         "Villanova62", "UCLA26", "Tennessee95", "NYU9", "Carnegie49", "GWU54", "USF51", "Vanderbilt48", 
@@ -124,11 +141,7 @@ class FB100(InMemoryDataset):
         return f'data-{self.target}.pt'
 
     def download(self):
-        context = ssl._create_default_https_context
-        ssl._create_default_https_context = ssl._create_unverified_context
-        for name in self.raw_file_names:
-            download_url(f'{self.url}/{name}', self.raw_dir)
-        ssl._create_default_https_context = context
+        download_facebook100(self.url, self.raw_dir, names=self.available_datasets)
 
     def process(self):
         features = pd.DataFrame()
